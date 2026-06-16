@@ -22,7 +22,7 @@ export default function NivelScreen() {
         <TouchableOpacity
           key={nivel.id}
           style={[styles.card, { borderLeftColor: nivel.color }]}
-          onPress={() => router.push('/')}
+          onPress={() => router.push('/avatar')}
         >
           <Text style={styles.emoji}>{nivel.emoji}</Text>
           <View style={styles.cardText}>
@@ -62,10 +62,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderLeftWidth: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
     elevation: 3,
   },
   emoji: {
