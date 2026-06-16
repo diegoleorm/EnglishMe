@@ -1,6 +1,9 @@
+import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function WelcomeScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -16,7 +19,7 @@ export default function WelcomeScreen() {
         <Text style={styles.feature}>✅ Aprende a tu ritmo</Text>
       </View>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/nivel')}>
         <Text style={styles.buttonText}>¡Comenzar ahora!</Text>
       </TouchableOpacity>
 
