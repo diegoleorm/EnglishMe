@@ -2,10 +2,10 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const avatares = [
-  { id: 1, nombre: 'Sara', descripcion: 'Tutora amigable y paciente', emoji: '👩', edad: '28 años', estilo: 'Casual', color: '#E91E8C' },
-  { id: 2, nombre: 'Jake', descripcion: 'Tutor moderno y dinámico', emoji: '👨', edad: '25 años', estilo: 'Casual', color: '#2196F3' },
-  { id: 3, nombre: 'Margaret', descripcion: 'Profesora formal y experta', emoji: '👩‍🏫', edad: '55 años', estilo: 'Formal', color: '#9C27B0' },
-  { id: 4, nombre: 'Carlos', descripcion: 'Tutor de negocios', emoji: '👨‍💼', edad: '40 años', estilo: 'Formal', color: '#FF5722' },
+  { id: 1, nombre: 'Michelle', descripcion: 'Tutora amigable y paciente', emoji: '👩', edad: '28 años', estilo: 'Casual', color: '#E91E8C' },
+  { id: 2, nombre: 'Esteban', descripcion: 'Tutor moderno y dinámico', emoji: '👨', edad: '25 años', estilo: 'Casual', color: '#2196F3' },
+  { id: 3, nombre: 'Luciana', descripcion: 'Profesora formal y experta', emoji: '👩‍🏫', edad: '33 años', estilo: 'Formal', color: '#9C27B0' },
+  { id: 4, nombre: 'Charley', descripcion: 'Tutor de negocios', emoji: '👨‍💼', edad: '40 años', estilo: 'Formal', color: '#FF5722' },
 ];
 
 export default function AvatarScreen() {
@@ -21,7 +21,7 @@ export default function AvatarScreen() {
           <TouchableOpacity
             key={avatar.id}
             style={[styles.card, { borderTopColor: avatar.color }]}
-            onPress={() => router.push('/')}
+            onPress={() => router.push('/leccion')}
           >
             <Text style={styles.emoji}>{avatar.emoji}</Text>
             <Text style={[styles.nombre, { color: avatar.color }]}>{avatar.nombre}</Text>
@@ -34,7 +34,7 @@ export default function AvatarScreen() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.crearBtn} onPress={() => router.push('/')}>
+      <TouchableOpacity style={styles.crearBtn} onPress={() => router.push('/leccion')}>
         <Text style={styles.crearEmoji}>✨</Text>
         <Text style={styles.crearTexto}>Crear mi propio avatar</Text>
         <Text style={styles.crearSub}>Elige rasgos, edad y género</Text>
