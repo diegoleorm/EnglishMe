@@ -21,7 +21,7 @@ export default function AvatarScreen() {
           <TouchableOpacity
             key={avatar.id}
             style={[styles.card, { borderTopColor: avatar.color }]}
-            onPress={() => router.push('/leccion')}
+            onPress={() => router.push({ pathname: '/leccion', params: { nombre: avatar.nombre, emoji: avatar.emoji } })}
           >
             <Text style={styles.emoji}>{avatar.emoji}</Text>
             <Text style={[styles.nombre, { color: avatar.color }]}>{avatar.nombre}</Text>
@@ -34,7 +34,7 @@ export default function AvatarScreen() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.crearBtn} onPress={() => router.push('/leccion')}>
+      <TouchableOpacity style={styles.crearBtn} onPress={() => router.push({ pathname: '/leccion', params: { nombre: 'Tu tutor', emoji: '🤖' } })}>
         <Text style={styles.crearEmoji}>✨</Text>
         <Text style={styles.crearTexto}>Crear mi propio avatar</Text>
         <Text style={styles.crearSub}>Elige rasgos, edad y género</Text>

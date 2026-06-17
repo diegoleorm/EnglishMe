@@ -1,75 +1,30 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { WebView } from 'react-native-webview';
-
-const SIMLI_API_KEY = process.env.EXPO_PUBLIC_SIMLI_API_KEY;
-
-const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    #avatar-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-    video { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
-    #status { color: white; font-size: 18px; font-family: Arial; text-align: center; }
-  </style>
-</head>
-<body>
-  <div id="avatar-container">
-    <p id="status">🎓 Tutor cargando...</p>
-  </div>
-  <script>
-    async function startAvatar() {
-      try {
-        const response = await fetch('https://api.simli.ai/startAudioToVideoSession', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-API-KEY': '${SIMLI_API_KEY}'
-          },
-          body: JSON.stringify({
-            faceId: 'tmp9i8bbq7c',
-            isJPG: false,
-            syncAudio: true
-          })
-        });
-        const data = await response.json();
-        document.getElementById('status').textContent = '✅ Tutor listo';
-        console.log('Simli response:', JSON.stringify(data));
-      } catch(e) {
-        document.getElementById('status').textContent = '⚠️ Conectando tutor...';
-      }
-    }
-    startAvatar();
-  </script>
-</body>
-</html>
-`;
 
 export default function LeccionScreen() {
   const router = useRouter();
+  const { nombre, emoji } = useLocalSearchParams();
+
+  const tutorNombre = nombre as string || 'Tu tutor';
+  const tutorEmoji = emoji as string || '🎓';
 
   return (
     <View style={styles.container}>
       <View style={styles.avatarContainer}>
-        <WebView
-          source={{ html: htmlContent }}
-          style={styles.webview}
-          javaScriptEnabled={true}
-          allowsInlineMediaPlayback={true}
-          mediaPlaybackRequiresUserAction={false}
-        />
+        <Text style={styles.avatarEmoji}>{tutorEmoji}</Text>
+        <Text style={styles.avatarNombre}>{tutorNombre}</Text>
+        <View style={styles.onlineIndicator}>
+          <Text style={styles.onlineTexto}>● En línea</Text>
+        </View>
       </View>
 
       <View style={styles.dialogo}>
-        <Text style={styles.tutorNombre}>Sara — Tu tutora</Text>
+        <Text style={styles.tutorNombre}>{tutorEmoji} {tutorNombre} — Tu tutor/a</Text>
         <Text style={styles.mensaje}>
-          "Hello! My name is Sara. Today we are going to learn basic greetings in English. Ready?"
+          "Hello! My name is {tutorNombre}. Today we are going to learn basic greetings in English. Ready?"
         </Text>
         <Text style={styles.traduccion}>
-          "¡Hola! Me llamo Sara. Hoy vamos a aprender saludos básicos en inglés. ¿Listos?"
+          "¡Hola! Me llamo {tutorNombre}. Hoy vamos a aprender saludos básicos en inglés. ¿Listos?"
         </Text>
       </View>
 
@@ -98,14 +53,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
   },
   avatarContainer: {
-    height: 300,
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#16213e',
     margin: 16,
     borderRadius: 20,
-    overflow: 'hidden',
   },
-  webview: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
+  avatarEmoji: {
+    fontSize: 100,
+    marginBottom: 12,
+  },
+  avatarNombre: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  onlineIndicator: {
+    backgroundColor: '#0f3460',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  onlineTexto: {
+    color: '#4CAF50',
+    fontSize: 13,
   },
   dialogo: {
     backgroundColor: '#16213e',
