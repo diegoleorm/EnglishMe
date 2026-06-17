@@ -27,7 +27,9 @@ export default function WelcomeScreen() {
         <Text style={styles.buttonText}>¡Comenzar ahora!</Text>
       </TouchableOpacity>
 
-      <Text style={styles.login}>¿Ya tienes cuenta? Inicia sesión</Text>
+      <TouchableOpacity onPress={() => router.push('/login')}>
+        <Text style={styles.login}>¿Ya tienes cuenta? Inicia sesión</Text>
+      </TouchableOpacity>
     </View>
   );
 }
