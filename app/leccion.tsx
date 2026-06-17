@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const lecciones = [
   {
@@ -31,6 +31,13 @@ const lecciones = [
     opciones: ["I am from Colombia.", "I am 30 years old.", "I like coffee."],
     correcta: 0,
   },
+  {
+    id: 5,
+    ingles: "How old are you?",
+    espanol: "¿Cuántos años tienes?",
+    opciones: ["I am fine.", "I am 25 years old.", "I like music."],
+    correcta: 1,
+  },
 ];
 
 export default function LeccionScreen() {
@@ -47,6 +54,7 @@ export default function LeccionScreen() {
   const [terminado, setTerminado] = useState(false);
 
   const leccionActual = lecciones[paso];
+  const progreso = ((paso) / lecciones.length) * 100;
 
   const responder = (index: number) => {
     if (seleccion !== null) return;
@@ -66,72 +74,166 @@ export default function LeccionScreen() {
     }
   };
 
+  const reiniciar = () => {
+    setPaso(0);
+    setSeleccion(null);
+    setCorrecto(null);
+    setPuntaje(0);
+    setTerminado(false);
+  };
+
+  // Pantalla de resultados
   if (terminado) {
+    const porcentaje = Math.round((puntaje / lecciones.length) * 100);
+    const esPerfecto = puntaje === lecciones.length;
+    const esBueno = puntaje >= lecciones.length / 2;
+
     return (
-      <View style={styles.container}>
-        <View style={styles.resultadoContainer}>
-          <Text style={styles.resultadoEmoji}>🏆</Text>
-          <Text style={styles.resultadoTitulo}>¡Lección completada!</Text>
-          <Text style={styles.resultadoPuntaje}>{puntaje}/{lecciones.length} correctas</Text>
-          <Text style={styles.resultadoMensaje}>
-            {puntaje === lecciones.length ? '¡Perfecto! Excelente trabajo 🌟' :
-             puntaje >= lecciones.length / 2 ? '¡Muy bien! Sigue practicando 💪' :
-             'Sigue practicando, lo lograrás 🎯'}
+      <View style={styles.resultContainer}>
+        <View style={styles.resultCard}>
+
+          <Text style={styles.resultEmoji}>
+            {esPerfecto ? '🏆' : esBueno ? '🌟' : '💪'}
           </Text>
-          <TouchableOpacity style={styles.btnRepetir} onPress={() => { setPaso(0); setSeleccion(null); setCorrecto(null); setPuntaje(0); setTerminado(false); }}>
-            <Text style={styles.btnTexto}>🔄 Repetir lección</Text>
+
+          <Text style={styles.resultTitulo}>
+            {esPerfecto ? '¡Perfecto!' : esBueno ? '¡Muy bien!' : '¡Sigue practicando!'}
+          </Text>
+
+          <Text style={styles.resultMensaje}>
+            {esPerfecto
+              ? 'Excelente trabajo, lo dominaste todo'
+              : esBueno
+              ? 'Vas muy bien, sigue así'
+              : 'La práctica hace al maestro'}
+          </Text>
+
+          {/* Círculo de puntaje */}
+          <View style={[styles.puntajeCirculo, {
+            borderColor: esPerfecto ? '#CA8A04' : esBueno ? '#2563EB' : '#DC2626'
+          }]}>
+            <Text style={[styles.puntajeNumero, {
+              color: esPerfecto ? '#CA8A04' : esBueno ? '#2563EB' : '#DC2626'
+            }]}>{porcentaje}%</Text>
+            <Text style={styles.puntajeLabel}>{puntaje}/{lecciones.length} correctas</Text>
+          </View>
+
+          {/* Estrellas */}
+          <View style={styles.estrellas}>
+            {[1, 2, 3].map((i) => (
+              <Text key={i} style={[
+                styles.estrella,
+                { opacity: puntaje >= Math.ceil((lecciones.length / 3) * i) ? 1 : 0.2 }
+              ]}>⭐</Text>
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.btnRepetir} onPress={reiniciar}>
+            <Text style={styles.btnRepetirTexto}>🔄  Repetir lección</Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.btnVolver} onPress={() => router.back()}>
-            <Text style={styles.btnTexto}>← Volver</Text>
+            <Text style={styles.btnVolverTexto}>← Volver a temas</Text>
           </TouchableOpacity>
+
         </View>
       </View>
     );
   }
 
+  // Pantalla de lección
   return (
     <View style={styles.container}>
-      <View style={styles.avatarContainer}>
-        <Text style={styles.avatarEmoji}>{tutorEmoji}</Text>
-        <Text style={styles.avatarNombre}>{tutorNombre}</Text>
-        <Text style={styles.progreso}>Pregunta {paso + 1} de {lecciones.length}</Text>
-      </View>
 
-      <View style={styles.preguntaContainer}>
-        <Text style={styles.ingles}>{leccionActual.ingles}</Text>
-        <Text style={styles.espanol}>{leccionActual.espanol}</Text>
-      </View>
-
-      <Text style={styles.instruccion}>Elige la respuesta correcta:</Text>
-
-      {leccionActual.opciones.map((opcion, index) => (
-        <TouchableOpacity
-          key={index}
-          style={[
-            styles.opcion,
-            seleccion === index && correcto ? styles.opcionCorrecta :
-            seleccion === index && !correcto ? styles.opcionIncorrecta :
-            seleccion !== null && index === leccionActual.correcta ? styles.opcionCorrecta :
-            null
-          ]}
-          onPress={() => responder(index)}
-        >
-          <Text style={styles.opcionTexto}>{opcion}</Text>
+      {/* Header con progreso */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backTexto}>✕</Text>
         </TouchableOpacity>
-      ))}
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { width: `${progreso}%` }]} />
+        </View>
+        <Text style={styles.progressLabel}>{paso + 1}/{lecciones.length}</Text>
+      </View>
 
-      {seleccion !== null && (
-        <View style={styles.feedbackContainer}>
-          <Text style={styles.feedback}>
-            {correcto ? '✅ ¡Correcto! Great job!' : '❌ Incorrecto. La respuesta era: ' + leccionActual.opciones[leccionActual.correcta]}
-          </Text>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* Tutor con burbuja */}
+        <View style={styles.tutorRow}>
+          <View style={styles.tutorAvatarWrap}>
+            <Text style={styles.tutorEmoji}>{tutorEmoji}</Text>
+          </View>
+          <View style={styles.burbuja}>
+            <Text style={styles.burbujaIngles}>{leccionActual.ingles}</Text>
+            <Text style={styles.burbujaEspanol}>{leccionActual.espanol}</Text>
+          </View>
+        </View>
+
+        {/* Instrucción */}
+        <Text style={styles.instruccion}>Elige la respuesta correcta:</Text>
+
+        {/* Opciones */}
+        <View style={styles.opciones}>
+          {leccionActual.opciones.map((opcion, index) => {
+            let estiloOpcion = styles.opcion;
+            let estiloTexto = styles.opcionTexto;
+
+            if (seleccion !== null) {
+              if (index === leccionActual.correcta) {
+                estiloOpcion = { ...styles.opcion, ...styles.opcionCorrecta };
+              } else if (seleccion === index && !correcto) {
+                estiloOpcion = { ...styles.opcion, ...styles.opcionIncorrecta };
+              } else {
+                estiloOpcion = { ...styles.opcion, ...styles.opcionDesactivada };
+              }
+            }
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={estiloOpcion}
+                onPress={() => responder(index)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.opcionLetra}>
+                  <Text style={styles.opcionLetraTexto}>
+                    {['A', 'B', 'C', 'D'][index]}
+                  </Text>
+                </View>
+                <Text style={estiloTexto}>{opcion}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Feedback */}
+        {seleccion !== null && (
+          <View style={[styles.feedback, correcto ? styles.feedbackCorrecto : styles.feedbackIncorrecto]}>
+            <Text style={styles.feedbackEmoji}>{correcto ? '✅' : '❌'}</Text>
+            <View style={styles.feedbackTextos}>
+              <Text style={styles.feedbackTitulo}>
+                {correcto ? '¡Correcto! Great job!' : 'Incorrecto'}
+              </Text>
+              {!correcto && (
+                <Text style={styles.feedbackRespuesta}>
+                  Respuesta: {leccionActual.opciones[leccionActual.correcta]}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Botón siguiente */}
+        {seleccion !== null && (
           <TouchableOpacity style={styles.btnSiguiente} onPress={siguiente}>
             <Text style={styles.btnSiguienteTexto}>
               {paso + 1 >= lecciones.length ? 'Ver resultado 🏆' : 'Siguiente →'}
             </Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -139,139 +241,254 @@ export default function LeccionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
-    padding: 16,
+    backgroundColor: '#0F172A',
   },
-  avatarContainer: {
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 20,
-    backgroundColor: '#16213e',
-    borderRadius: 20,
-    marginBottom: 16,
+    paddingTop: 56,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
   },
-  avatarEmoji: {
-    fontSize: 60,
-    marginBottom: 8,
+  backBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarNombre: {
+  backTexto: {
+    color: '#64748B',
     fontSize: 18,
-    fontWeight: 'bold',
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#1E293B',
+    borderRadius: 4,
+  },
+  progressBarFill: {
+    height: 8,
+    backgroundColor: '#3B6FE8',
+    borderRadius: 4,
+  },
+  progressLabel: {
+    color: '#3B6FE8',
+    fontSize: 13,
+    fontWeight: '700',
+    minWidth: 32,
+    textAlign: 'right',
+  },
+  scroll: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  tutorRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 24,
+  },
+  tutorAvatarWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  tutorEmoji: {
+    fontSize: 32,
+  },
+  burbuja: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    padding: 14,
+  },
+  burbujaIngles: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  progreso: {
+  burbujaEspanol: {
     fontSize: 13,
-    color: '#4A90D9',
-  },
-  preguntaContainer: {
-    backgroundColor: '#16213e',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  ingles: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  espanol: {
-    fontSize: 15,
-    color: '#A0A0B0',
+    color: '#64748B',
     fontStyle: 'italic',
-    textAlign: 'center',
   },
   instruccion: {
-    fontSize: 14,
-    color: '#7F8C8D',
+    fontSize: 13,
+    color: '#64748B',
     marginBottom: 12,
   },
+  opciones: {
+    gap: 10,
+    marginBottom: 16,
+  },
   opcion: {
-    backgroundColor: '#0f3460',
-    borderRadius: 12,
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
   },
   opcionCorrecta: {
-    backgroundColor: '#1a5e1a',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
+    backgroundColor: '#14532D',
+    borderColor: '#22C55E',
   },
   opcionIncorrecta: {
-    backgroundColor: '#5e1a1a',
-    borderWidth: 2,
-    borderColor: '#F44336',
+    backgroundColor: '#4C0519',
+    borderColor: '#EF4444',
+  },
+  opcionDesactivada: {
+    opacity: 0.4,
+  },
+  opcionLetra: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  opcionLetraTexto: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '700',
   },
   opcionTexto: {
     color: '#FFFFFF',
     fontSize: 15,
-  },
-  feedbackContainer: {
-    marginTop: 8,
+    flex: 1,
   },
   feedback: {
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  feedbackCorrecto: {
+    backgroundColor: '#14532D',
+  },
+  feedbackIncorrecto: {
+    backgroundColor: '#4C0519',
+  },
+  feedbackEmoji: {
+    fontSize: 24,
+  },
+  feedbackTextos: {
+    flex: 1,
+  },
+  feedbackTitulo: {
     color: '#FFFFFF',
     fontSize: 14,
-    marginBottom: 12,
-    textAlign: 'center',
+    fontWeight: '700',
+  },
+  feedbackRespuesta: {
+    color: '#94A3B8',
+    fontSize: 12,
+    marginTop: 2,
   },
   btnSiguiente: {
-    backgroundColor: '#4A90D9',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#3B6FE8',
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   btnSiguienteTexto: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
-  resultadoContainer: {
+  resultContainer: {
     flex: 1,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 24,
   },
-  resultadoEmoji: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  resultadoTitulo: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  resultadoPuntaje: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 8,
-  },
-  resultadoMensaje: {
-    fontSize: 16,
-    color: '#A0A0B0',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  btnRepetir: {
-    backgroundColor: '#4A90D9',
-    borderRadius: 12,
-    padding: 16,
+  resultCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    padding: 28,
     width: '100%',
     alignItems: 'center',
+  },
+  resultEmoji: {
+    fontSize: 64,
     marginBottom: 12,
   },
-  btnVolver: {
-    backgroundColor: '#0f3460',
-    borderRadius: 12,
-    padding: 16,
+  resultTitulo: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  resultMensaje: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  puntajeCirculo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  puntajeNumero: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  puntajeLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  estrellas: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 28,
+  },
+  estrella: {
+    fontSize: 32,
+  },
+  btnRepetir: {
+    backgroundColor: '#3B6FE8',
+    borderRadius: 14,
+    paddingVertical: 15,
     width: '100%',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  btnTexto: {
+  btnRepetirTexto: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  btnVolver: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    paddingVertical: 15,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  btnVolverTexto: {
+    color: '#94A3B8',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
