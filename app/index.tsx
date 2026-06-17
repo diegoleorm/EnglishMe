@@ -6,6 +6,10 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.perfilBtn} onPress={() => router.push('/perfil')}>
+        <Text style={styles.perfilEmoji}>👤</Text>
+      </TouchableOpacity>
+
       <View style={styles.header}>
         <Text style={styles.emoji}>🌎</Text>
         <Text style={styles.title}>EnglishMe</Text>
@@ -35,6 +39,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  perfilBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 25,
+    padding: 10,
+  },
+  perfilEmoji: {
+    fontSize: 24,
   },
   header: {
     alignItems: 'center',
