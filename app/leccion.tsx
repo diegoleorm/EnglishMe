@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const lecciones = [
   {
@@ -54,7 +54,7 @@ export default function LeccionScreen() {
   const [terminado, setTerminado] = useState(false);
 
   const leccionActual = lecciones[paso];
-  const progreso = ((paso) / lecciones.length) * 100;
+  const progreso = (paso / lecciones.length) * 100;
 
   const responder = (index: number) => {
     if (seleccion !== null) return;
@@ -82,7 +82,6 @@ export default function LeccionScreen() {
     setTerminado(false);
   };
 
-  // Pantalla de resultados
   if (terminado) {
     const porcentaje = Math.round((puntaje / lecciones.length) * 100);
     const esPerfecto = puntaje === lecciones.length;
@@ -91,15 +90,12 @@ export default function LeccionScreen() {
     return (
       <View style={styles.resultContainer}>
         <View style={styles.resultCard}>
-
           <Text style={styles.resultEmoji}>
             {esPerfecto ? '🏆' : esBueno ? '🌟' : '💪'}
           </Text>
-
           <Text style={styles.resultTitulo}>
             {esPerfecto ? '¡Perfecto!' : esBueno ? '¡Muy bien!' : '¡Sigue practicando!'}
           </Text>
-
           <Text style={styles.resultMensaje}>
             {esPerfecto
               ? 'Excelente trabajo, lo dominaste todo'
@@ -107,8 +103,6 @@ export default function LeccionScreen() {
               ? 'Vas muy bien, sigue así'
               : 'La práctica hace al maestro'}
           </Text>
-
-          {/* Círculo de puntaje */}
           <View style={[styles.puntajeCirculo, {
             borderColor: esPerfecto ? '#CA8A04' : esBueno ? '#2563EB' : '#DC2626'
           }]}>
@@ -117,8 +111,6 @@ export default function LeccionScreen() {
             }]}>{porcentaje}%</Text>
             <Text style={styles.puntajeLabel}>{puntaje}/{lecciones.length} correctas</Text>
           </View>
-
-          {/* Estrellas */}
           <View style={styles.estrellas}>
             {[1, 2, 3].map((i) => (
               <Text key={i} style={[
@@ -127,25 +119,20 @@ export default function LeccionScreen() {
               ]}>⭐</Text>
             ))}
           </View>
-
           <TouchableOpacity style={styles.btnRepetir} onPress={reiniciar}>
             <Text style={styles.btnRepetirTexto}>🔄  Repetir lección</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.btnVolver} onPress={() => router.back()}>
             <Text style={styles.btnVolverTexto}>← Volver a temas</Text>
           </TouchableOpacity>
-
         </View>
       </View>
     );
   }
 
-  // Pantalla de lección
   return (
     <View style={styles.container}>
 
-      {/* Header con progreso */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backTexto}>✕</Text>
@@ -156,57 +143,51 @@ export default function LeccionScreen() {
         <Text style={styles.progressLabel}>{paso + 1}/{lecciones.length}</Text>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Tutor con burbuja */}
-        <View style={styles.tutorRow}>
-          <View style={styles.tutorAvatarWrap}>
-            <Text style={styles.tutorEmoji}>{tutorEmoji}</Text>
-          </View>
-          <View style={styles.burbuja}>
-            <Text style={styles.burbujaIngles}>{leccionActual.ingles}</Text>
-            <Text style={styles.burbujaEspanol}>{leccionActual.espanol}</Text>
-          </View>
+      <View style={styles.tutorRow}>
+        <View style={styles.tutorAvatarWrap}>
+          <Text style={styles.tutorEmoji}>{tutorEmoji}</Text>
         </View>
+        <View style={styles.burbuja}>
+          <Text style={styles.burbujaIngles}>{leccionActual.ingles}</Text>
+          <Text style={styles.burbujaEspanol}>{leccionActual.espanol}</Text>
+        </View>
+      </View>
 
-        {/* Instrucción */}
-        <Text style={styles.instruccion}>Elige la respuesta correcta:</Text>
+      <Text style={styles.instruccion}>Elige la respuesta correcta:</Text>
 
-        {/* Opciones */}
-        <View style={styles.opciones}>
-          {leccionActual.opciones.map((opcion, index) => {
-            let estiloOpcion = styles.opcion;
-            let estiloTexto = styles.opcionTexto;
+      <View style={styles.opcionesWrap}>
+        {leccionActual.opciones.map((opcion, index) => {
+          let estiloOpcion = styles.opcion;
 
-            if (seleccion !== null) {
-              if (index === leccionActual.correcta) {
-                estiloOpcion = { ...styles.opcion, ...styles.opcionCorrecta };
-              } else if (seleccion === index && !correcto) {
-                estiloOpcion = { ...styles.opcion, ...styles.opcionIncorrecta };
-              } else {
-                estiloOpcion = { ...styles.opcion, ...styles.opcionDesactivada };
-              }
+          if (seleccion !== null) {
+            if (index === leccionActual.correcta) {
+              estiloOpcion = { ...styles.opcion, ...styles.opcionCorrecta };
+            } else if (seleccion === index && !correcto) {
+              estiloOpcion = { ...styles.opcion, ...styles.opcionIncorrecta };
+            } else {
+              estiloOpcion = { ...styles.opcion, ...styles.opcionDesactivada };
             }
+          }
 
-            return (
-              <TouchableOpacity
-                key={index}
-                style={estiloOpcion}
-                onPress={() => responder(index)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.opcionLetra}>
-                  <Text style={styles.opcionLetraTexto}>
-                    {['A', 'B', 'C', 'D'][index]}
-                  </Text>
-                </View>
-                <Text style={estiloTexto}>{opcion}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          return (
+            <TouchableOpacity
+              key={index}
+              style={estiloOpcion}
+              onPress={() => responder(index)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.opcionLetra}>
+                <Text style={styles.opcionLetraTexto}>
+                  {['A', 'B', 'C', 'D'][index]}
+                </Text>
+              </View>
+              <Text style={styles.opcionTexto}>{opcion}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
-        {/* Feedback */}
+      <View style={styles.bottomWrap}>
         {seleccion !== null && (
           <View style={[styles.feedback, correcto ? styles.feedbackCorrecto : styles.feedbackIncorrecto]}>
             <Text style={styles.feedbackEmoji}>{correcto ? '✅' : '❌'}</Text>
@@ -223,7 +204,6 @@ export default function LeccionScreen() {
           </View>
         )}
 
-        {/* Botón siguiente */}
         {seleccion !== null && (
           <TouchableOpacity style={styles.btnSiguiente} onPress={siguiente}>
             <Text style={styles.btnSiguienteTexto}>
@@ -231,9 +211,8 @@ export default function LeccionScreen() {
             </Text>
           </TouchableOpacity>
         )}
+      </View>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
     </View>
   );
 }
@@ -242,13 +221,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
+    paddingHorizontal: 16,
+    paddingBottom: 32,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 56,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 24,
     gap: 12,
   },
   backBtn: {
@@ -279,43 +259,39 @@ const styles = StyleSheet.create({
     minWidth: 32,
     textAlign: 'right',
   },
-  scroll: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
   tutorRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   tutorAvatarWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   tutorEmoji: {
-    fontSize: 32,
+    fontSize: 34,
   },
   burbuja: {
     flex: 1,
     backgroundColor: '#1E293B',
     borderRadius: 16,
     borderTopLeftRadius: 4,
-    padding: 14,
+    padding: 16,
   },
   burbujaIngles: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   burbujaEspanol: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#64748B',
     fontStyle: 'italic',
   },
@@ -324,17 +300,17 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginBottom: 12,
   },
-  opciones: {
-    gap: 10,
-    marginBottom: 16,
+  opcionesWrap: {
+    gap: 12,
   },
   opcion: {
+    height: 72,
     backgroundColor: '#1E293B',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 16,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     borderWidth: 1.5,
     borderColor: '#1E293B',
   },
@@ -350,22 +326,26 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   opcionLetra: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#334155',
     alignItems: 'center',
     justifyContent: 'center',
   },
   opcionLetraTexto: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   opcionTexto: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     flex: 1,
+  },
+  bottomWrap: {
+    gap: 12,
+    paddingTop: 16,
   },
   feedback: {
     borderRadius: 14,
@@ -373,7 +353,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 12,
   },
   feedbackCorrecto: {
     backgroundColor: '#14532D',
