@@ -12,15 +12,6 @@ const logros = [
   { id: 8, titulo: 'Velocista', descripcion: 'Completa una lección en menos de 1 min', emoji: '🏃', obtenido: false },
 ];
 
-const progresoPorNivel = [
-  { nivel: 'Nivel 0', porcentaje: 100, color: '#16A34A' },
-  { nivel: 'Nivel A1', porcentaje: 45, color: '#2563EB' },
-  { nivel: 'Nivel A2', porcentaje: 10, color: '#9333EA' },
-  { nivel: 'Nivel B1', porcentaje: 0, color: '#D97706' },
-  { nivel: 'Nivel B2', porcentaje: 0, color: '#DC2626' },
-  { nivel: 'Nivel C1', porcentaje: 0, color: '#CA8A04' },
-];
-
 export default function PerfilScreen() {
   const router = useRouter();
 
@@ -29,7 +20,6 @@ export default function PerfilScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarWrap}>
           <Text style={styles.avatarEmoji}>👤</Text>
@@ -42,46 +32,23 @@ export default function PerfilScreen() {
         </View>
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
           <Text style={styles.statNumero}>12</Text>
           <Text style={styles.statLabel}>Lecciones</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumero}>89%</Text>
-          <Text style={styles.statLabel}>Promedio</Text>
-        </View>
-        <View style={styles.statCard}>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
           <Text style={styles.statNumero}>240</Text>
           <Text style={styles.statLabel}>Puntos</Text>
         </View>
-        <View style={styles.statCard}>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
           <Text style={styles.statNumero}>{logrosObtenidos}/{logros.length}</Text>
           <Text style={styles.statLabel}>Logros</Text>
         </View>
       </View>
 
-      {/* Progreso por nivel */}
-      <Text style={styles.seccionTitulo}>Progreso general</Text>
-      <View style={styles.progresoCard}>
-        {progresoPorNivel.map((item) => (
-          <View key={item.nivel} style={styles.progresoItem}>
-            <Text style={styles.progresoLabel}>{item.nivel}</Text>
-            <View style={styles.barraFondo}>
-              <View
-                style={[
-                  styles.barra,
-                  { width: `${item.porcentaje}%`, backgroundColor: item.color },
-                ]}
-              />
-            </View>
-            <Text style={styles.porcentajeTexto}>{item.porcentaje}%</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Logros */}
       <Text style={styles.seccionTitulo}>Mis logros</Text>
       <View style={styles.logrosGrid}>
         {logros.map((logro) => (
@@ -105,12 +72,32 @@ export default function PerfilScreen() {
         ))}
       </View>
 
-      {/* Botón cerrar sesión */}
+      <Text style={styles.seccionTitulo}>Cuenta</Text>
+      <View style={styles.opcionesCard}>
+        <TouchableOpacity style={styles.opcionItem}>
+          <Text style={styles.opcionIcono}>✏️</Text>
+          <Text style={styles.opcionTexto}>Editar perfil</Text>
+          <Text style={styles.opcionArrow}>›</Text>
+        </TouchableOpacity>
+        <View style={styles.opcionLinea} />
+        <TouchableOpacity style={styles.opcionItem}>
+          <Text style={styles.opcionIcono}>🔔</Text>
+          <Text style={styles.opcionTexto}>Notificaciones</Text>
+          <Text style={styles.opcionArrow}>›</Text>
+        </TouchableOpacity>
+        <View style={styles.opcionLinea} />
+        <TouchableOpacity style={styles.opcionItem}>
+          <Text style={styles.opcionIcono}>⚙️</Text>
+          <Text style={styles.opcionTexto}>Configuración</Text>
+          <Text style={styles.opcionArrow}>›</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={styles.btnCerrar} onPress={() => router.push('/login')}>
         <Text style={styles.btnCerrarTexto}>Cerrar sesión</Text>
       </TouchableOpacity>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 20 }} />
     </ScrollView>
   );
 }
@@ -169,84 +156,49 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 10,
-  },
-  statCard: {
+  statsRow: {
     backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: -16,
     borderRadius: 16,
     padding: 16,
-    width: '47.5%',
+    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 0.5,
     borderColor: '#E2E8F0',
   },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#E2E8F0',
+  },
   statNumero: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
     color: '#0F172A',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
-    marginTop: 4,
+    marginTop: 2,
   },
   seccionTitulo: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#0F172A',
     paddingHorizontal: 16,
+    marginTop: 24,
     marginBottom: 12,
-    marginTop: 4,
-  },
-  progresoCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-    gap: 14,
-  },
-  progresoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  progresoLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    width: 64,
-    fontWeight: '500',
-  },
-  barraFondo: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-    height: 8,
-  },
-  barra: {
-    height: 8,
-    borderRadius: 10,
-    minWidth: 4,
-  },
-  porcentajeTexto: {
-    fontSize: 12,
-    color: '#94A3B8',
-    width: 36,
-    textAlign: 'right',
-    fontWeight: '500',
   },
   logrosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     gap: 10,
-    marginBottom: 24,
   },
   logroCard: {
     backgroundColor: '#FFFFFF',
@@ -289,8 +241,40 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
   },
+  opcionesCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    borderColor: '#E2E8F0',
+  },
+  opcionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  opcionIcono: {
+    fontSize: 18,
+  },
+  opcionTexto: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '500',
+  },
+  opcionArrow: {
+    fontSize: 18,
+    color: '#CBD5E1',
+  },
+  opcionLinea: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 46,
+  },
   btnCerrar: {
     marginHorizontal: 16,
+    marginTop: 20,
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: 'center',
