@@ -1,25 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import {
-    cancelarRecordatorios,
-    programarRecordatorioDiario,
-    solicitarPermisos,
+  cancelarRecordatorios,
+  programarRecordatorioDiario,
+  solicitarPermisos,
 } from './utils/notifications';
-
-const horasDisponibles = [
-  { hora: 7, minuto: 0, label: '7:00 AM', emoji: '🌅' },
-  { hora: 12, minuto: 0, label: '12:00 PM', emoji: '☀️' },
-  { hora: 18, minuto: 0, label: '6:00 PM', emoji: '🌇' },
-  { hora: 20, minuto: 0, label: '8:00 PM', emoji: '🌙' },
-  { hora: 21, minuto: 30, label: '9:30 PM', emoji: '✨' },
-];
 
 export default function NotificacionesScreen() {
   const router = useRouter();
   const [activado, setActivado] = useState(false);
-  const [horaSeleccionada, setHoraSeleccionada] = useState(horasDisponibles[3]);
+  const [hora, setHora] = useState(new Date(new Date().setHours(20, 0, 0, 0)));
+  const [mostrarPicker, setMostrarPicker] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -29,17 +23,13 @@ export default function NotificacionesScreen() {
   const cargarConfiguracion = async () => {
     try {
       const estado = await AsyncStorage.getItem('notificaciones_activadas');
-      const horaGuardada = await AsyncStorage.getItem('notificaciones_hora');
+      const horaGuardada = await AsyncStorage.getItem('notificaciones_hora_iso');
 
       if (estado === 'true') {
         setActivado(true);
       }
       if (horaGuardada) {
-        const horaParsed = JSON.parse(horaGuardada);
-        const encontrada = horasDisponibles.find(
-          h => h.hora === horaParsed.hora && h.minuto === horaParsed.minuto
-        );
-        if (encontrada) setHoraSeleccionada(encontrada);
+        setHora(new Date(horaGuardada));
       }
     } catch (e) {
       console.log('Error cargando configuración:', e);
@@ -57,7 +47,7 @@ export default function NotificacionesScreen() {
         );
         return;
       }
-      await programarRecordatorioDiario(horaSeleccionada.hora, horaSeleccionada.minuto);
+      await programarRecordatorioDiario(hora.getHours(), hora.getMinutes());
       await AsyncStorage.setItem('notificaciones_activadas', 'true');
       setActivado(true);
     } else {
@@ -67,13 +57,26 @@ export default function NotificacionesScreen() {
     }
   };
 
-  const seleccionarHora = async (item: typeof horasDisponibles[0]) => {
-    setHoraSeleccionada(item);
-    await AsyncStorage.setItem('notificaciones_hora', JSON.stringify(item));
+  const onCambiarHora = async (event: any, fechaSeleccionada?: Date) => {
+    setMostrarPicker(Platform.OS === 'ios');
+
+    if (event.type === 'dismissed' || !fechaSeleccionada) {
+      return;
+    }
+
+    setHora(fechaSeleccionada);
+    await AsyncStorage.setItem('notificaciones_hora_iso', fechaSeleccionada.toISOString());
+
     if (activado) {
-      await programarRecordatorioDiario(item.hora, item.minuto);
+      await programarRecordatorioDiario(fechaSeleccionada.getHours(), fechaSeleccionada.getMinutes());
     }
   };
+
+  const horaFormateada = hora.toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
 
   if (cargando) {
     return <View style={styles.container} />;
@@ -113,31 +116,37 @@ export default function NotificacionesScreen() {
       {activado && (
         <>
           <Text style={styles.seccionTitulo}>¿A qué hora?</Text>
-          <View style={styles.horasCard}>
-            {horasDisponibles.map((item) => (
-              <TouchableOpacity
-                key={item.label}
-                style={[
-                  styles.horaItem,
-                  horaSeleccionada.label === item.label && styles.horaItemActiva,
-                ]}
-                onPress={() => seleccionarHora(item)}
-              >
-                <Text style={styles.horaEmoji}>{item.emoji}</Text>
-                <Text
-                  style={[
-                    styles.horaTexto,
-                    horaSeleccionada.label === item.label && styles.horaTextoActivo,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-                {horaSeleccionada.label === item.label && (
-                  <Text style={styles.horaCheck}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={styles.horaCard}
+            onPress={() => setMostrarPicker(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.horaEmoji}>🕐</Text>
+            <View style={styles.horaInfo}>
+              <Text style={styles.horaLabel}>Hora del recordatorio</Text>
+              <Text style={styles.horaValor}>{horaFormateada}</Text>
+            </View>
+            <Text style={styles.horaArrow}>›</Text>
+          </TouchableOpacity>
+
+          {mostrarPicker && (
+            <DateTimePicker
+              value={hora}
+              mode="time"
+              is24Hour={false}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onCambiarHora}
+            />
+          )}
+
+          {Platform.OS === 'ios' && mostrarPicker && (
+            <TouchableOpacity
+              style={styles.btnConfirmarIOS}
+              onPress={() => setMostrarPicker(false)}
+            >
+              <Text style={styles.btnConfirmarTexto}>Confirmar</Text>
+            </TouchableOpacity>
+          )}
         </>
       )}
 
@@ -227,40 +236,48 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 12,
   },
-  horasCard: {
+  horaCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 16,
     borderWidth: 0.5,
     borderColor: '#E2E8F0',
-  },
-  horaItem: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  horaItemActiva: {
-    backgroundColor: '#EFF4FF',
+    gap: 14,
   },
   horaEmoji: {
-    fontSize: 18,
+    fontSize: 28,
   },
-  horaTexto: {
+  horaInfo: {
     flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-    fontWeight: '500',
   },
-  horaTextoActivo: {
-    color: '#3B6FE8',
+  horaLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  horaValor: {
+    fontSize: 22,
     fontWeight: '700',
-  },
-  horaCheck: {
     color: '#3B6FE8',
-    fontSize: 16,
+  },
+  horaArrow: {
+    fontSize: 20,
+    color: '#CBD5E1',
+  },
+  btnConfirmarIOS: {
+    backgroundColor: '#3B6FE8',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  btnConfirmarTexto: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '700',
   },
   infoBox: {
