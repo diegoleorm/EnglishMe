@@ -1,6 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   StyleSheet,
@@ -12,8 +14,11 @@ import {
 export default function WelcomeScreen() {
   const router = useRouter();
   const rotacion = useRef(new Animated.Value(0)).current;
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
+    verificarOnboarding();
+
     Animated.loop(
       Animated.timing(rotacion, {
         toValue: 1,
@@ -24,15 +29,36 @@ export default function WelcomeScreen() {
     ).start();
   }, []);
 
+  const verificarOnboarding = async () => {
+    try {
+      const visto = await AsyncStorage.getItem('onboarding_visto');
+      if (!visto) {
+        router.replace('/onboarding');
+        return;
+      }
+    } catch (e) {
+      console.log('Error verificando onboarding:', e);
+    }
+    setCargando(false);
+  };
+
   const spin = rotacion.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
+  if (cargando) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3B6FE8" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
 
-      <TouchableOpacity style={styles.perfilBtn} onPress={() => router.push('/perfil')}>
+      <TouchableOpacity style={styles.perfilBtn} onPress={() => router.push('/(tabs)/perfil')}>
         <Text style={styles.perfilEmoji}>👤</Text>
       </TouchableOpacity>
 
@@ -77,6 +103,12 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
