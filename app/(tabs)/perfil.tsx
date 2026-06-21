@@ -86,7 +86,7 @@ export default function PerfilScreen() {
           <Text style={styles.opcionArrow}>›</Text>
         </TouchableOpacity>
         <View style={styles.opcionLinea} />
-        <TouchableOpacity style={styles.opcionItem}>
+        <TouchableOpacity style={styles.opcionItem} onPress={() => router.push('/configuracion')}>
           <Text style={styles.opcionIcono}>⚙️</Text>
           <Text style={styles.opcionTexto}>Configuración</Text>
           <Text style={styles.opcionArrow}>›</Text>
