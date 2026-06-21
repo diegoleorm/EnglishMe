@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTema } from '../theme/ThemeContext';
+import type { Tema } from '../theme/colors';
 
 const logros = [
   { id: 1, titulo: 'Primera lección', descripcion: 'Completaste tu primera lección', emoji: '🌟', obtenido: true },
@@ -14,6 +16,8 @@ const logros = [
 
 export default function PerfilScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
 
   const logrosObtenidos = logros.filter(l => l.obtenido).length;
 
@@ -102,189 +106,191 @@ export default function PerfilScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    backgroundColor: '#3B6FE8',
-    paddingTop: 60,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  avatarWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  avatarEmoji: {
-    fontSize: 40,
-  },
-  nombre: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  nivelTexto: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 12,
-  },
-  rachaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EA580C',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-  },
-  rachaEmoji: {
-    fontSize: 15,
-  },
-  rachaTexto: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  statsRow: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: -16,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: '#E2E8F0',
-  },
-  statNumero: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  seccionTitulo: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0F172A',
-    paddingHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  logrosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  logroCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    width: '47.5%',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-    position: 'relative',
-  },
-  logroCardBloqueado: {
-    backgroundColor: '#F8FAFC',
-    opacity: 0.6,
-  },
-  lockBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  lockTexto: {
-    fontSize: 12,
-  },
-  logroEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  logroTitulo: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  textoBloqueado: {
-    color: '#CBD5E1',
-  },
-  logroDesc: {
-    fontSize: 10,
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  opcionesCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-  },
-  opcionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 12,
-  },
-  opcionIcono: {
-    fontSize: 18,
-  },
-  opcionTexto: {
-    flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-    fontWeight: '500',
-  },
-  opcionArrow: {
-    fontSize: 18,
-    color: '#CBD5E1',
-  },
-  opcionLinea: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginLeft: 46,
-  },
-  btnCerrar: {
-    marginHorizontal: 16,
-    marginTop: 20,
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  btnCerrarTexto: {
-    color: '#DC2626',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    header: {
+      backgroundColor: colores.primario,
+      paddingTop: 60,
+      paddingBottom: 28,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+    },
+    avatarWrap: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      borderWidth: 2.5,
+      borderColor: 'rgba(255,255,255,0.4)',
+    },
+    avatarEmoji: {
+      fontSize: 40,
+    },
+    nombre: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 4,
+    },
+    nivelTexto: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.7)',
+      marginBottom: 12,
+    },
+    rachaChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colores.advertencia,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 20,
+      gap: 6,
+    },
+    rachaEmoji: {
+      fontSize: 15,
+    },
+    rachaTexto: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    statsRow: {
+      backgroundColor: colores.fondoTarjeta,
+      marginHorizontal: 16,
+      marginTop: -16,
+      borderRadius: 16,
+      padding: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      height: 32,
+      backgroundColor: colores.borde,
+    },
+    statNumero: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+    },
+    statLabel: {
+      fontSize: 11,
+      color: colores.textoTerciario,
+      marginTop: 2,
+    },
+    seccionTitulo: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      paddingHorizontal: 16,
+      marginTop: 24,
+      marginBottom: 12,
+    },
+    logrosGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: 16,
+      gap: 10,
+    },
+    logroCard: {
+      backgroundColor: colores.fondoTarjeta,
+      borderRadius: 16,
+      padding: 16,
+      width: '47.5%',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colores.borde,
+      position: 'relative',
+    },
+    logroCardBloqueado: {
+      backgroundColor: colores.fondoSecundario,
+      opacity: 0.6,
+    },
+    lockBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+    },
+    lockTexto: {
+      fontSize: 12,
+    },
+    logroEmoji: {
+      fontSize: 32,
+      marginBottom: 8,
+    },
+    logroTitulo: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      textAlign: 'center',
+      marginBottom: 4,
+    },
+    textoBloqueado: {
+      color: colores.textoTerciario,
+    },
+    logroDesc: {
+      fontSize: 10,
+      color: colores.textoTerciario,
+      textAlign: 'center',
+    },
+    opcionesCard: {
+      backgroundColor: colores.fondoTarjeta,
+      marginHorizontal: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    opcionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      gap: 12,
+    },
+    opcionIcono: {
+      fontSize: 18,
+    },
+    opcionTexto: {
+      flex: 1,
+      fontSize: 14,
+      color: colores.textoPrimario,
+      fontWeight: '500',
+    },
+    opcionArrow: {
+      fontSize: 18,
+      color: colores.textoTerciario,
+    },
+    opcionLinea: {
+      height: 1,
+      backgroundColor: colores.bordeSutil,
+      marginLeft: 46,
+    },
+    btnCerrar: {
+      marginHorizontal: 16,
+      marginTop: 20,
+      borderRadius: 14,
+      paddingVertical: 15,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colores.error,
+      backgroundColor: colores.fondoTarjeta,
+    },
+    btnCerrarTexto: {
+      color: colores.error,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+  });
+}
