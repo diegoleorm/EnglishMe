@@ -1,5 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTema } from '../theme/ThemeContext';
+import type { Tema } from '../theme/colors';
 
 const temasPorNivel = [
   {
@@ -91,6 +93,8 @@ const temasPorNivel = [
 export default function TemasScreen() {
   const router = useRouter();
   const { nombre, emoji } = useLocalSearchParams();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
 
   const tutorNombre = nombre as string || 'Tu tutor';
   const tutorEmoji = emoji as string || '🎓';
@@ -113,7 +117,6 @@ export default function TemasScreen() {
 
       {temasPorNivel.map((grupo) => (
         <View key={grupo.nivel} style={styles.grupo}>
-
           <View style={[styles.nivelHeader, { backgroundColor: grupo.bgColor }]}>
             <Text style={[styles.nivelTitulo, { color: grupo.color }]}>{grupo.nivel}</Text>
             <Text style={[styles.nivelCount, { color: grupo.color }]}>
@@ -163,136 +166,140 @@ export default function TemasScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  tutorBar: {
-    backgroundColor: '#0F172A',
-    paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  tutorChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
-    padding: 12,
-    gap: 12,
-  },
-  tutorEmoji: {
-    fontSize: 36,
-  },
-  tutorNombre: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  tutorSub: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0F172A',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  grupo: {
-    marginBottom: 8,
-  },
-  nivelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 8,
-  },
-  nivelTitulo: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  nivelCount: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-  },
-  temaIcono: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  temaEmoji: {
-    fontSize: 22,
-  },
-  temaInfo: {
-    flex: 1,
-  },
-  temaTitulo: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  temaDesc: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginBottom: 6,
-  },
-  temaTags: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  tag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  tagTexto: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  tagCompletado: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  tagCompletadoTexto: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#16A34A',
-  },
-  arrow: {
-    fontSize: 20,
-    color: '#CBD5E1',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    tutorBar: {
+      backgroundColor: colores.fondoSecundario,
+      paddingTop: 60,
+      paddingBottom: 16,
+      paddingHorizontal: 16,
+    },
+    tutorChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colores.fondoTarjeta,
+      borderRadius: 14,
+      padding: 12,
+      gap: 12,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    tutorEmoji: {
+      fontSize: 36,
+    },
+    tutorNombre: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+    },
+    tutorSub: {
+      fontSize: 12,
+      color: colores.textoTerciario,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      paddingHorizontal: 16,
+      paddingTop: 20,
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: colores.textoTerciario,
+      paddingHorizontal: 16,
+      marginBottom: 16,
+    },
+    grupo: {
+      marginBottom: 8,
+    },
+    nivelHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginHorizontal: 16,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginBottom: 8,
+    },
+    nivelTitulo: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    nivelCount: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    card: {
+      backgroundColor: colores.fondoTarjeta,
+      borderRadius: 14,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    temaIcono: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    temaEmoji: {
+      fontSize: 22,
+    },
+    temaInfo: {
+      flex: 1,
+    },
+    temaTitulo: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colores.textoPrimario,
+      marginBottom: 2,
+    },
+    temaDesc: {
+      fontSize: 11,
+      color: colores.textoTerciario,
+      marginBottom: 6,
+    },
+    temaTags: {
+      flexDirection: 'row',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    tag: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    tagTexto: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    tagCompletado: {
+      backgroundColor: colores.exitoFondo,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    tagCompletadoTexto: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colores.exito,
+    },
+    arrow: {
+      fontSize: 20,
+      color: colores.textoTerciario,
+    },
+  });
+}

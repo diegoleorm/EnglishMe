@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTema } from './theme/ThemeContext';
+import type { Tema } from './theme/colors';
 
 const niveles = [
   { id: 0, nombre: 'Nivel 0', descripcion: 'Absoluto principiante', emoji: '🌱', color: '#16A34A', bgColor: '#DCFCE7', dotColors: [] },
@@ -10,25 +12,55 @@ const niveles = [
   { id: 5, nombre: 'Nivel C1', descripcion: 'Avanzado', emoji: '🏆', color: '#CA8A04', bgColor: '#FEF9C3', dotColors: ['#CA8A04', '#CA8A04', '#CA8A04'] },
 ];
 
-function Shield({ emoji, color, bgColor, dotColors }: { emoji: string; color: string; bgColor: string; dotColors: string[] }) {
+function Shield({ emoji, color, bgColor, dotColors }: {
+  emoji: string;
+  color: string;
+  bgColor: string;
+  dotColors: string[];
+}) {
   return (
-    <View style={[styles.shieldOuter, { borderColor: color }]}>
-      <View style={[styles.shieldInner, { backgroundColor: bgColor }]}>
-        {dotColors.length > 0 && (
-          <View style={styles.dotsRow}>
-            {dotColors.map((c, i) => (
-              <View key={i} style={[styles.dot, { backgroundColor: c }]} />
-            ))}
-          </View>
-        )}
-        <Text style={styles.shieldEmoji}>{emoji}</Text>
-      </View>
+    <View style={[shieldStyles.outer, { borderColor: color, backgroundColor: bgColor }]}>
+      {dotColors.length > 0 && (
+        <View style={shieldStyles.dotsRow}>
+          {dotColors.map((c, i) => (
+            <View key={i} style={[shieldStyles.dot, { backgroundColor: c }]} />
+          ))}
+        </View>
+      )}
+      <Text style={shieldStyles.emoji}>{emoji}</Text>
     </View>
   );
 }
 
+const shieldStyles = StyleSheet.create({
+  outer: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 3,
+    position: 'absolute',
+    top: 6,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  emoji: {
+    fontSize: 22,
+  },
+});
+
 export default function NivelScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -63,84 +95,57 @@ export default function NivelScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    backgroundColor: '#3B6FE8',
-    paddingTop: 60,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  cards: {
-    padding: 16,
-    gap: 10,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-  },
-  shieldOuter: {
-    width: 48,
-    height: 56,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  shieldInner: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 3,
-    position: 'absolute',
-    top: 5,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  shieldEmoji: {
-    fontSize: 22,
-  },
-  cardText: {
-    flex: 1,
-  },
-  cardNombre: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 3,
-  },
-  cardDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  arrow: {
-    fontSize: 20,
-    color: '#CBD5E1',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    header: {
+      backgroundColor: colores.primario,
+      paddingTop: 60,
+      paddingBottom: 28,
+      paddingHorizontal: 20,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 6,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.75)',
+    },
+    cards: {
+      padding: 16,
+      gap: 10,
+    },
+    card: {
+      backgroundColor: colores.fondoTarjeta,
+      borderRadius: 16,
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    cardText: {
+      flex: 1,
+    },
+    cardNombre: {
+      fontSize: 15,
+      fontWeight: '700',
+      marginBottom: 3,
+    },
+    cardDesc: {
+      fontSize: 12,
+      color: colores.textoTerciario,
+    },
+    arrow: {
+      fontSize: 20,
+      color: colores.textoTerciario,
+    },
+  });
+}

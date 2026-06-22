@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTema } from './theme/ThemeContext';
+import type { Tema } from './theme/colors';
 
 const avatares = [
   {
@@ -50,17 +52,17 @@ const avatares = [
 
 export default function AvatarScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Elige tu tutor</Text>
         <Text style={styles.subtitle}>¿Con quién quieres aprender inglés?</Text>
       </View>
 
-      {/* Grid de tutores */}
       <View style={styles.grid}>
         {avatares.map((avatar) => (
           <TouchableOpacity
@@ -69,7 +71,7 @@ export default function AvatarScreen() {
             activeOpacity={0.85}
             onPress={() =>
               router.push({
-                pathname: '/temas',
+                pathname: '/(tabs)/temas',
                 params: { nombre: avatar.nombre, emoji: avatar.emoji },
               })
             }
@@ -91,13 +93,12 @@ export default function AvatarScreen() {
         ))}
       </View>
 
-      {/* Botón crear avatar */}
       <TouchableOpacity
         style={styles.crearBtn}
         activeOpacity={0.85}
         onPress={() =>
           router.push({
-            pathname: '/temas',
+            pathname: '/(tabs)/temas',
             params: { nombre: 'Mi tutor', emoji: '🤖' },
           })
         }
@@ -116,115 +117,119 @@ export default function AvatarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    backgroundColor: '#3B6FE8',
-    paddingTop: 60,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 12,
-    gap: 10,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    width: '47.5%',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-  },
-  avatarCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  avatarEmoji: {
-    fontSize: 32,
-  },
-  nombre: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  descripcion: {
-    fontSize: 11,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    gap: 4,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  tag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  tagTexto: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  crearBtn: {
-    backgroundColor: '#0F172A',
-    borderRadius: 18,
-    marginHorizontal: 12,
-    marginBottom: 40,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  crearIcono: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  crearEmoji: {
-    fontSize: 24,
-  },
-  crearTextos: {
-    flex: 1,
-  },
-  crearTitulo: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 3,
-  },
-  crearSub: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  crearArrow: {
-    fontSize: 22,
-    color: '#334155',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    header: {
+      backgroundColor: colores.primario,
+      paddingTop: 60,
+      paddingBottom: 28,
+      paddingHorizontal: 20,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 6,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.75)',
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      padding: 12,
+      gap: 10,
+    },
+    card: {
+      backgroundColor: colores.fondoTarjeta,
+      borderRadius: 18,
+      padding: 16,
+      width: '47.5%',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    avatarCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    avatarEmoji: {
+      fontSize: 32,
+    },
+    nombre: {
+      fontSize: 15,
+      fontWeight: '700',
+      marginBottom: 4,
+    },
+    descripcion: {
+      fontSize: 11,
+      color: colores.textoTerciario,
+      textAlign: 'center',
+      marginBottom: 10,
+    },
+    tagsRow: {
+      flexDirection: 'row',
+      gap: 4,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+    },
+    tag: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+    },
+    tagTexto: {
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    crearBtn: {
+      backgroundColor: colores.fondoSecundario,
+      borderRadius: 18,
+      marginHorizontal: 12,
+      marginBottom: 40,
+      padding: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    crearIcono: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colores.fondoInput,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    crearEmoji: {
+      fontSize: 24,
+    },
+    crearTextos: {
+      flex: 1,
+    },
+    crearTitulo: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      marginBottom: 3,
+    },
+    crearSub: {
+      fontSize: 12,
+      color: colores.textoTerciario,
+    },
+    crearArrow: {
+      fontSize: 22,
+      color: colores.textoTerciario,
+    },
+  });
+}

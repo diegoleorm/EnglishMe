@@ -1,19 +1,24 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useTema } from './theme/ThemeContext';
+import type { Tema } from './theme/colors';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
+
   const [modo, setModo] = useState<'login' | 'registro'>('login');
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -78,7 +83,7 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Tu nombre completo"
-                placeholderTextColor="#475569"
+                placeholderTextColor={colores.textoTerciario}
                 value={nombre}
                 onChangeText={setNombre}
               />
@@ -90,7 +95,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="tu@correo.com"
-              placeholderTextColor="#475569"
+              placeholderTextColor={colores.textoTerciario}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -103,7 +108,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tu contraseña"
-              placeholderTextColor="#475569"
+              placeholderTextColor={colores.textoTerciario}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -142,145 +147,149 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 70,
-    paddingBottom: 40,
-  },
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: 36,
-  },
-  logoBox: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#3B6FE8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  logoEmoji: {
-    fontSize: 36,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  subtitulo: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 24,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 9,
-  },
-  tabActivo: {
-    backgroundColor: '#3B6FE8',
-  },
-  tabTexto: {
-    color: '#64748B',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tabTextoActivo: {
-    color: '#FFFFFF',
-  },
-  formulario: {
-    marginBottom: 8,
-  },
-  campo: {
-    marginBottom: 16,
-  },
-  campoLabel: {
-    color: '#94A3B8',
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 15,
-    color: '#FFFFFF',
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  olvidaste: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-    marginTop: -8,
-  },
-  olvidasteTexto: {
-    color: '#3B6FE8',
-    fontSize: 13,
-  },
-  btnPrincipal: {
-    backgroundColor: '#3B6FE8',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  btnPrincipalTexto: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  separador: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 10,
-  },
-  linea: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#1E293B',
-  },
-  separadorTexto: {
-    color: '#475569',
-    fontSize: 13,
-  },
-  btnGoogle: {
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  btnGoogleTexto: {
-    color: '#FFFFFF',
-    fontSize: 15,
-  },
-  btnInvitado: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  btnInvitadoTexto: {
-    color: '#475569',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    scroll: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      paddingTop: 70,
+      paddingBottom: 40,
+    },
+    logoWrap: {
+      alignItems: 'center',
+      marginBottom: 36,
+    },
+    logoBox: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      backgroundColor: colores.primario,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+    },
+    logoEmoji: {
+      fontSize: 36,
+    },
+    titulo: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      marginBottom: 6,
+    },
+    subtitulo: {
+      fontSize: 14,
+      color: colores.textoTerciario,
+      textAlign: 'center',
+    },
+    tabs: {
+      flexDirection: 'row',
+      backgroundColor: colores.fondoSecundario,
+      borderRadius: 12,
+      padding: 4,
+      marginBottom: 24,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderRadius: 9,
+    },
+    tabActivo: {
+      backgroundColor: colores.primario,
+    },
+    tabTexto: {
+      color: colores.textoTerciario,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    tabTextoActivo: {
+      color: '#FFFFFF',
+    },
+    formulario: {
+      marginBottom: 8,
+    },
+    campo: {
+      marginBottom: 16,
+    },
+    campoLabel: {
+      color: colores.textoSecundario,
+      fontSize: 13,
+      fontWeight: '500',
+      marginBottom: 8,
+    },
+    input: {
+      backgroundColor: colores.fondoInput,
+      borderRadius: 12,
+      padding: 15,
+      color: colores.textoPrimario,
+      fontSize: 15,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    olvidaste: {
+      alignSelf: 'flex-end',
+      marginBottom: 16,
+      marginTop: -8,
+    },
+    olvidasteTexto: {
+      color: colores.primario,
+      fontSize: 13,
+    },
+    btnPrincipal: {
+      backgroundColor: colores.primario,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    btnPrincipalTexto: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    separador: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 24,
+      gap: 10,
+    },
+    linea: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colores.borde,
+    },
+    separadorTexto: {
+      color: colores.textoTerciario,
+      fontSize: 13,
+    },
+    btnGoogle: {
+      backgroundColor: colores.fondoSecundario,
+      borderRadius: 14,
+      paddingVertical: 15,
+      alignItems: 'center',
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    btnGoogleTexto: {
+      color: colores.textoPrimario,
+      fontSize: 15,
+    },
+    btnInvitado: {
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    btnInvitadoTexto: {
+      color: colores.textoTerciario,
+      fontSize: 14,
+      textDecorationLine: 'underline',
+    },
+  });
+}
