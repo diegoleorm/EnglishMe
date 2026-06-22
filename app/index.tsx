@@ -10,9 +10,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTema } from './theme/ThemeContext';
+import type { Tema } from './theme/colors';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
   const rotacion = useRef(new Animated.Value(0)).current;
   const [cargando, setCargando] = useState(true);
 
@@ -50,7 +54,7 @@ export default function WelcomeScreen() {
   if (cargando) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B6FE8" />
+        <ActivityIndicator size="large" color={colores.primario} />
       </View>
     );
   }
@@ -102,104 +106,106 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
-    justifyContent: 'space-between',
-  },
-  perfilBtn: {
-    position: 'absolute',
-    top: 56,
-    right: 24,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  perfilEmoji: {
-    fontSize: 20,
-  },
-  logoWrap: {
-    alignItems: 'center',
-    paddingTop: 20,
-  },
-  logoEmoji: {
-    fontSize: 100,
-    marginBottom: 16,
-  },
-  titulo: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  subtitulo: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  featuresCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
-    padding: 20,
-    gap: 14,
-    borderWidth: 0.5,
-    borderColor: '#334155',
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  featureIcono: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureTexto: {
-    fontSize: 14,
-    color: '#CBD5E1',
-    flex: 1,
-  },
-  botonesWrap: {
-    gap: 12,
-  },
-  btnPrincipal: {
-    backgroundColor: '#3B6FE8',
-    borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  btnPrincipalTexto: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  btnSecundario: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  btnSecundarioTexto: {
-    color: '#64748B',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+      paddingHorizontal: 24,
+      paddingTop: 60,
+      paddingBottom: 40,
+      justifyContent: 'space-between',
+    },
+    perfilBtn: {
+      position: 'absolute',
+      top: 56,
+      right: 24,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colores.fondoSecundario,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    perfilEmoji: {
+      fontSize: 20,
+    },
+    logoWrap: {
+      alignItems: 'center',
+      paddingTop: 20,
+    },
+    logoEmoji: {
+      fontSize: 100,
+      marginBottom: 16,
+    },
+    titulo: {
+      fontSize: 36,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      marginBottom: 8,
+    },
+    subtitulo: {
+      fontSize: 15,
+      color: colores.textoTerciario,
+      textAlign: 'center',
+    },
+    featuresCard: {
+      backgroundColor: colores.fondoSecundario,
+      borderRadius: 20,
+      padding: 20,
+      gap: 14,
+      borderWidth: 1,
+      borderColor: colores.borde,
+    },
+    featureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    featureIcono: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colores.fondoInput,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    featureTexto: {
+      fontSize: 14,
+      color: colores.textoSecundario,
+      flex: 1,
+    },
+    botonesWrap: {
+      gap: 12,
+    },
+    btnPrincipal: {
+      backgroundColor: colores.primario,
+      borderRadius: 16,
+      paddingVertical: 18,
+      alignItems: 'center',
+    },
+    btnPrincipalTexto: {
+      color: '#FFFFFF',
+      fontSize: 17,
+      fontWeight: '700',
+    },
+    btnSecundario: {
+      alignItems: 'center',
+      paddingVertical: 10,
+    },
+    btnSecundarioTexto: {
+      color: colores.textoTerciario,
+      fontSize: 14,
+      textDecorationLine: 'underline',
+    },
+  });
+}
