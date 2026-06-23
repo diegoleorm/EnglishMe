@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useTema } from './theme/ThemeContext';
-import type { Tema } from './theme/colors';
+import { useProgreso } from './theme/ProgresoContext';
 
 const lecciones = [
   {
@@ -44,18 +43,19 @@ const lecciones = [
 
 export default function LeccionScreen() {
   const router = useRouter();
-  const { nombre, emoji } = useLocalSearchParams();
-  const { colores } = useTema();
-  const styles = crearEstilos(colores);
+  const { emoji, temaId, temaTitulo } = useLocalSearchParams();
+  const { completarTema } = useProgreso();
 
-  const tutorNombre = nombre as string || 'Tu tutor';
   const tutorEmoji = emoji as string || '🎓';
+  const tituloTema = temaTitulo as string || 'Lección';
+  const idTemaNumero = temaId ? parseInt(temaId as string, 10) : null;
 
   const [paso, setPaso] = useState(0);
   const [seleccion, setSeleccion] = useState<number | null>(null);
   const [correcto, setCorrecto] = useState<boolean | null>(null);
   const [puntaje, setPuntaje] = useState(0);
   const [terminado, setTerminado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const leccionActual = lecciones[paso];
   const progreso = (paso / lecciones.length) * 100;
@@ -68,9 +68,15 @@ export default function LeccionScreen() {
     if (esCorrecto) setPuntaje(puntaje + 1);
   };
 
-  const siguiente = () => {
+  const siguiente = async () => {
     if (paso + 1 >= lecciones.length) {
       setTerminado(true);
+      if (idTemaNumero !== null) {
+        setGuardando(true);
+        // 10 puntos por cada respuesta correcta
+        await completarTema(idTemaNumero, puntaje * 10);
+        setGuardando(false);
+      }
     } else {
       setPaso(paso + 1);
       setSeleccion(null);
@@ -108,10 +114,10 @@ export default function LeccionScreen() {
               : 'La práctica hace al maestro'}
           </Text>
           <View style={[styles.puntajeCirculo, {
-            borderColor: esPerfecto ? '#CA8A04' : esBueno ? colores.primario : colores.error
+            borderColor: esPerfecto ? '#CA8A04' : esBueno ? '#2563EB' : '#DC2626'
           }]}>
             <Text style={[styles.puntajeNumero, {
-              color: esPerfecto ? '#CA8A04' : esBueno ? colores.primario : colores.error
+              color: esPerfecto ? '#CA8A04' : esBueno ? '#2563EB' : '#DC2626'
             }]}>{porcentaje}%</Text>
             <Text style={styles.puntajeLabel}>{puntaje}/{lecciones.length} correctas</Text>
           </View>
@@ -123,10 +129,13 @@ export default function LeccionScreen() {
               ]}>⭐</Text>
             ))}
           </View>
-          <TouchableOpacity style={styles.btnRepetir} onPress={reiniciar}>
+          {guardando && (
+            <Text style={styles.guardandoTexto}>Guardando tu progreso...</Text>
+          )}
+          <TouchableOpacity style={styles.btnRepetir} onPress={reiniciar} disabled={guardando}>
             <Text style={styles.btnRepetirTexto}>🔄  Repetir lección</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btnVolver} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.btnVolver} onPress={() => router.back()} disabled={guardando}>
             <Text style={styles.btnVolverTexto}>← Volver a temas</Text>
           </TouchableOpacity>
         </View>
@@ -146,6 +155,8 @@ export default function LeccionScreen() {
         </View>
         <Text style={styles.progressLabel}>{paso + 1}/{lecciones.length}</Text>
       </View>
+
+      <Text style={styles.temaTituloHeader}>{tituloTema}</Text>
 
       <View style={styles.tutorRow}>
         <View style={styles.tutorAvatarWrap}>
@@ -221,265 +232,268 @@ export default function LeccionScreen() {
   );
 }
 
-function crearEstilos(colores: Tema) {
-  return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colores.fondo,
-      paddingHorizontal: 16,
-      paddingBottom: 32,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingTop: 56,
-      paddingBottom: 24,
-      gap: 12,
-    },
-    backBtn: {
-      width: 32,
-      height: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    backTexto: {
-      color: colores.textoTerciario,
-      fontSize: 18,
-    },
-    progressBarBg: {
-      flex: 1,
-      height: 8,
-      backgroundColor: colores.fondoSecundario,
-      borderRadius: 4,
-    },
-    progressBarFill: {
-      height: 8,
-      backgroundColor: colores.primario,
-      borderRadius: 4,
-    },
-    progressLabel: {
-      color: colores.primario,
-      fontSize: 13,
-      fontWeight: '700',
-      minWidth: 32,
-      textAlign: 'right',
-    },
-    tutorRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-      marginBottom: 20,
-    },
-    tutorAvatarWrap: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: colores.fondoSecundario,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      borderWidth: 1,
-      borderColor: colores.borde,
-    },
-    tutorEmoji: {
-      fontSize: 34,
-    },
-    burbuja: {
-      flex: 1,
-      backgroundColor: colores.fondoSecundario,
-      borderRadius: 16,
-      borderTopLeftRadius: 4,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colores.borde,
-    },
-    burbujaIngles: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: colores.textoPrimario,
-      marginBottom: 6,
-    },
-    burbujaEspanol: {
-      fontSize: 14,
-      color: colores.textoTerciario,
-      fontStyle: 'italic',
-    },
-    instruccion: {
-      fontSize: 13,
-      color: colores.textoTerciario,
-      marginBottom: 12,
-    },
-    opcionesWrap: {
-      gap: 10,
-    },
-    opcion: {
-      height: 72,
-      backgroundColor: colores.fondoSecundario,
-      borderRadius: 16,
-      paddingHorizontal: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-      borderWidth: 1.5,
-      borderColor: colores.borde,
-    },
-    opcionCorrecta: {
-      backgroundColor: colores.exitoFondo,
-      borderColor: colores.exito,
-    },
-    opcionIncorrecta: {
-      backgroundColor: colores.errorFondo,
-      borderColor: colores.error,
-    },
-    opcionDesactivada: {
-      opacity: 0.4,
-    },
-    opcionLetra: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: colores.fondoInput,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    opcionLetraTexto: {
-      color: colores.textoSecundario,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    opcionTexto: {
-      color: colores.textoPrimario,
-      fontSize: 15,
-      flex: 1,
-    },
-    bottomWrap: {
-      gap: 12,
-      paddingTop: 16,
-    },
-    feedback: {
-      borderRadius: 14,
-      padding: 14,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    feedbackCorrecto: {
-      backgroundColor: colores.exitoFondo,
-    },
-    feedbackIncorrecto: {
-      backgroundColor: colores.errorFondo,
-    },
-    feedbackEmoji: {
-      fontSize: 24,
-    },
-    feedbackTextos: {
-      flex: 1,
-    },
-    feedbackTitulo: {
-      color: colores.textoPrimario,
-      fontSize: 14,
-      fontWeight: '700',
-    },
-    feedbackRespuesta: {
-      color: colores.textoSecundario,
-      fontSize: 12,
-      marginTop: 2,
-    },
-    btnSiguiente: {
-      backgroundColor: colores.primario,
-      borderRadius: 14,
-      paddingVertical: 16,
-      alignItems: 'center',
-    },
-    btnSiguienteTexto: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '700',
-    },
-    resultContainer: {
-      flex: 1,
-      backgroundColor: colores.fondo,
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 24,
-    },
-    resultCard: {
-      backgroundColor: colores.fondoSecundario,
-      borderRadius: 24,
-      padding: 28,
-      width: '100%',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colores.borde,
-    },
-    resultEmoji: {
-      fontSize: 64,
-      marginBottom: 12,
-    },
-    resultTitulo: {
-      fontSize: 26,
-      fontWeight: '700',
-      color: colores.textoPrimario,
-      marginBottom: 6,
-    },
-    resultMensaje: {
-      fontSize: 14,
-      color: colores.textoTerciario,
-      textAlign: 'center',
-      marginBottom: 24,
-    },
-    puntajeCirculo: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      borderWidth: 5,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 20,
-    },
-    puntajeNumero: {
-      fontSize: 32,
-      fontWeight: '700',
-    },
-    puntajeLabel: {
-      fontSize: 11,
-      color: colores.textoTerciario,
-      marginTop: 2,
-    },
-    estrellas: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 28,
-    },
-    estrella: {
-      fontSize: 32,
-    },
-    btnRepetir: {
-      backgroundColor: colores.primario,
-      borderRadius: 14,
-      paddingVertical: 15,
-      width: '100%',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    btnRepetirTexto: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: '700',
-    },
-    btnVolver: {
-      backgroundColor: colores.fondo,
-      borderRadius: 14,
-      paddingVertical: 15,
-      width: '100%',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colores.borde,
-    },
-    btnVolverTexto: {
-      color: colores.textoSecundario,
-      fontSize: 15,
-      fontWeight: '600',
-    },
-  });
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 56,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backTexto: {
+    color: '#64748B',
+    fontSize: 18,
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#1E293B',
+    borderRadius: 4,
+  },
+  progressBarFill: {
+    height: 8,
+    backgroundColor: '#3B6FE8',
+    borderRadius: 4,
+  },
+  progressLabel: {
+    color: '#3B6FE8',
+    fontSize: 13,
+    fontWeight: '700',
+    minWidth: 32,
+    textAlign: 'right',
+  },
+  temaTituloHeader: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  tutorRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 20,
+  },
+  tutorAvatarWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  tutorEmoji: {
+    fontSize: 34,
+  },
+  burbuja: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    padding: 16,
+  },
+  burbujaIngles: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  burbujaEspanol: {
+    fontSize: 14,
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  instruccion: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  opcionesWrap: {
+    gap: 12,
+  },
+  opcion: {
+    height: 72,
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
+  },
+  opcionCorrecta: {
+    backgroundColor: '#14532D',
+    borderColor: '#22C55E',
+  },
+  opcionIncorrecta: {
+    backgroundColor: '#4C0519',
+    borderColor: '#EF4444',
+  },
+  opcionDesactivada: {
+    opacity: 0.4,
+  },
+  opcionLetra: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  opcionLetraTexto: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  opcionTexto: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    flex: 1,
+  },
+  bottomWrap: {
+    gap: 12,
+    paddingTop: 16,
+  },
+  feedback: {
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  feedbackCorrecto: {
+    backgroundColor: '#14532D',
+  },
+  feedbackIncorrecto: {
+    backgroundColor: '#4C0519',
+  },
+  feedbackEmoji: {
+    fontSize: 24,
+  },
+  feedbackTextos: {
+    flex: 1,
+  },
+  feedbackTitulo: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  feedbackRespuesta: {
+    color: '#94A3B8',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  btnSiguiente: {
+    backgroundColor: '#3B6FE8',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  btnSiguienteTexto: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  resultContainer: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  resultCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    padding: 28,
+    width: '100%',
+    alignItems: 'center',
+  },
+  resultEmoji: {
+    fontSize: 64,
+    marginBottom: 12,
+  },
+  resultTitulo: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  resultMensaje: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  puntajeCirculo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  puntajeNumero: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  puntajeLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  estrellas: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 28,
+  },
+  estrella: {
+    fontSize: 32,
+  },
+  guardandoTexto: {
+    color: '#64748B',
+    fontSize: 13,
+    marginBottom: 14,
+  },
+  btnRepetir: {
+    backgroundColor: '#3B6FE8',
+    borderRadius: 14,
+    paddingVertical: 15,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  btnRepetirTexto: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  btnVolver: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    paddingVertical: 15,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  btnVolverTexto: {
+    color: '#94A3B8',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+});

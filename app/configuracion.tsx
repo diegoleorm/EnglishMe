@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useProgreso } from './theme/ProgresoContext';
 import { useTema } from './theme/ThemeContext';
 
 export default function ConfiguracionScreen() {
   const router = useRouter();
   const { modoTema, colores, alternarTema } = useTema();
+  const { restablecerProgreso } = useProgreso();
   const [sonidoActivado, setSonidoActivado] = useState(true);
 
   const confirmarReiniciar = () => {
@@ -14,7 +16,8 @@ export default function ConfiguracionScreen() {
       '¿Estás seguro? Se perderán todas tus lecciones completadas y logros. Esta acción no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Restablecer', style: 'destructive', onPress: () => {
+        { text: 'Restablecer', style: 'destructive', onPress: async () => {
+          await restablecerProgreso();
           Alert.alert('Listo', 'Tu progreso ha sido restablecido.');
         }},
       ]

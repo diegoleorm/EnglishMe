@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { supabase } from './lib/supabase';
 import { useTema } from './theme/ThemeContext';
 import type { Tema } from './theme/colors';
 
@@ -23,11 +25,28 @@ export default function LoginScreen() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (modo === 'registro') {
       if (!nombre || !email || !password) {
         Alert.alert('Error', 'Por favor completa todos los campos');
+        return;
+      }
+      if (password.length < 6) {
+        Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+      setCargando(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { nombre } },
+      });
+      setCargando(false);
+      if (error) {
+        Alert.alert('Error al crear la cuenta', error.message);
         return;
       }
       Alert.alert('¡Bienvenido!', `Cuenta creada para ${nombre}`, [
@@ -36,6 +55,13 @@ export default function LoginScreen() {
     } else {
       if (!email || !password) {
         Alert.alert('Error', 'Por favor completa todos los campos');
+        return;
+      }
+      setCargando(true);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setCargando(false);
+      if (error) {
+        Alert.alert('Error al iniciar sesión', error.message);
         return;
       }
       router.push('/nivel');
@@ -105,14 +131,23 @@ export default function LoginScreen() {
 
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Contraseña</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tu contraseña"
-              placeholderTextColor={colores.textoTerciario}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <View style={styles.inputConIcono}>
+              <TextInput
+                style={styles.inputConIconoTexto}
+                placeholder="Tu contraseña"
+                placeholderTextColor={colores.textoTerciario}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!mostrarPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setMostrarPassword(!mostrarPassword)}
+                style={styles.iconoOjo}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.iconoOjoTexto}>{mostrarPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {modo === 'login' && (
@@ -121,10 +156,18 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={styles.btnPrincipal} onPress={handleSubmit}>
-            <Text style={styles.btnPrincipalTexto}>
-              {modo === 'login' ? 'Entrar' : 'Crear cuenta'}
-            </Text>
+          <TouchableOpacity
+            style={[styles.btnPrincipal, cargando && { opacity: 0.7 }]}
+            onPress={handleSubmit}
+            disabled={cargando}
+          >
+            {cargando ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.btnPrincipalTexto}>
+                {modo === 'login' ? 'Entrar' : 'Crear cuenta'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -232,6 +275,27 @@ function crearEstilos(colores: Tema) {
       fontSize: 15,
       borderWidth: 1,
       borderColor: colores.borde,
+    },
+    inputConIcono: {
+      backgroundColor: colores.fondoInput,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colores.borde,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    inputConIconoTexto: {
+      flex: 1,
+      padding: 15,
+      color: colores.textoPrimario,
+      fontSize: 15,
+    },
+    iconoOjo: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    iconoOjoTexto: {
+      fontSize: 18,
     },
     olvidaste: {
       alignSelf: 'flex-end',

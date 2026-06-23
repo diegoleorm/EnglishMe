@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useProgreso } from './theme/ProgresoContext';
 import { useTema } from './theme/ThemeContext';
 import type { Tema } from './theme/colors';
 
@@ -53,7 +54,16 @@ const avatares = [
 export default function AvatarScreen() {
   const router = useRouter();
   const { colores } = useTema();
+  const { elegirAvatar } = useProgreso();
   const styles = crearEstilos(colores);
+
+  const seleccionarAvatar = async (nombre: string, emoji: string) => {
+    await elegirAvatar({ nombre, emoji });
+    router.push({
+      pathname: '/(tabs)/temas',
+      params: { nombre, emoji },
+    });
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -69,12 +79,7 @@ export default function AvatarScreen() {
             key={avatar.id}
             style={styles.card}
             activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: '/(tabs)/temas',
-                params: { nombre: avatar.nombre, emoji: avatar.emoji },
-              })
-            }
+            onPress={() => seleccionarAvatar(avatar.nombre, avatar.emoji)}
           >
             <View style={[styles.avatarCircle, { backgroundColor: avatar.bgColor }]}>
               <Text style={styles.avatarEmoji}>{avatar.emoji}</Text>
@@ -96,12 +101,7 @@ export default function AvatarScreen() {
       <TouchableOpacity
         style={styles.crearBtn}
         activeOpacity={0.85}
-        onPress={() =>
-          router.push({
-            pathname: '/(tabs)/temas',
-            params: { nombre: 'Mi tutor', emoji: '🤖' },
-          })
-        }
+        onPress={() => seleccionarAvatar('Mi tutor', '🤖')}
       >
         <View style={styles.crearIcono}>
           <Text style={styles.crearEmoji}>✨</Text>

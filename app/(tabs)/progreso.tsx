@@ -1,33 +1,46 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useProgreso } from '../theme/ProgresoContext';
 import { useTema } from '../theme/ThemeContext';
 import type { Tema } from '../theme/colors';
 
-const progresoPorNivel = [
-  { nivel: 'Nivel 0', porcentaje: 100, color: '#16A34A', temas: 5, completados: 5 },
-  { nivel: 'Nivel A1', porcentaje: 45, color: '#2563EB', temas: 6, completados: 3 },
-  { nivel: 'Nivel A2', porcentaje: 10, color: '#9333EA', temas: 7, completados: 1 },
-  { nivel: 'Nivel B1', porcentaje: 0, color: '#D97706', temas: 9, completados: 0 },
-  { nivel: 'Nivel B2', porcentaje: 0, color: '#DC2626', temas: 8, completados: 0 },
-  { nivel: 'Nivel C1', porcentaje: 0, color: '#CA8A04', temas: 7, completados: 0 },
+// Mismos rangos de id de temas definidos en temas.tsx, agrupados por nivel.
+const nivelesDefinicion = [
+  { nivel: 'Nivel 0', color: '#16A34A', ids: [1, 2, 3, 4, 5] },
+  { nivel: 'Nivel A1', color: '#2563EB', ids: [6, 7, 8, 9, 10, 11] },
+  { nivel: 'Nivel A2', color: '#9333EA', ids: [12, 13, 14, 15, 16, 17, 18] },
+  { nivel: 'Nivel B1', color: '#D97706', ids: [19, 20, 21, 22, 23, 24, 25, 26, 27] },
+  { nivel: 'Nivel B2', color: '#DC2626', ids: [28, 29, 30, 31, 32, 33, 34, 35] },
+  { nivel: 'Nivel C1', color: '#CA8A04', ids: [36, 37, 38, 39, 40, 41, 42] },
 ];
 
-const actividadSemana = [
-  { dia: 'L', activo: true },
-  { dia: 'M', activo: true },
-  { dia: 'M', activo: true },
-  { dia: 'J', activo: false },
-  { dia: 'V', activo: false },
-  { dia: 'S', activo: false },
-  { dia: 'D', activo: false },
-];
+const diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 export default function ProgresoScreen() {
   const { colores } = useTema();
+  const { temasCompletados, rachaDias, ultimaFechaActividad } = useProgreso();
   const styles = crearEstilos(colores);
 
-  const totalTemas = progresoPorNivel.reduce((acc, n) => acc + n.temas, 0);
-  const totalCompletados = progresoPorNivel.reduce((acc, n) => acc + n.completados, 0);
+  const progresoPorNivel = nivelesDefinicion.map(n => {
+    const completados = n.ids.filter(id => temasCompletados.includes(id)).length;
+    const porcentaje = Math.round((completados / n.ids.length) * 100);
+    return { ...n, temas: n.ids.length, completados, porcentaje };
+  });
+
+  const totalTemas = 42;
+  const totalCompletados = temasCompletados.length;
   const progresoGlobal = Math.round((totalCompletados / totalTemas) * 100);
+
+  // Actividad de la semana basada en la racha actual: marca como activos
+  // los últimos N días (N = racha), terminando hoy.
+  const indiceHoy = (new Date().getDay() + 6) % 7; // 0 = Lunes ... 6 = Domingo
+  const actividadSemana = diasSemana.map((dia, i) => {
+    let activo = false;
+    if (ultimaFechaActividad && rachaDias > 0) {
+      const diferenciaDesdeHoy = indiceHoy - i;
+      activo = diferenciaDesdeHoy >= 0 && diferenciaDesdeHoy < rachaDias;
+    }
+    return { dia, activo };
+  });
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>

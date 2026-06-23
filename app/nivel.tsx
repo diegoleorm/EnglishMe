@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useProgreso } from './theme/ProgresoContext';
 import { useTema } from './theme/ThemeContext';
 import type { Tema } from './theme/colors';
 
@@ -60,7 +61,13 @@ const shieldStyles = StyleSheet.create({
 export default function NivelScreen() {
   const router = useRouter();
   const { colores } = useTema();
+  const { elegirNivel } = useProgreso();
   const styles = crearEstilos(colores);
+
+  const seleccionarNivel = async (nivelId: number, nivelNombre: string) => {
+    await elegirNivel(nivelId, nivelNombre);
+    router.push('/avatar');
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -74,7 +81,7 @@ export default function NivelScreen() {
           <TouchableOpacity
             key={nivel.id}
             style={styles.card}
-            onPress={() => router.push('/avatar')}
+            onPress={() => seleccionarNivel(nivel.id, nivel.nombre)}
             activeOpacity={0.85}
           >
             <Shield

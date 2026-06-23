@@ -1,24 +1,39 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { supabase } from '../lib/supabase';
+import { useProgreso } from '../theme/ProgresoContext';
 import { useTema } from '../theme/ThemeContext';
 import type { Tema } from '../theme/colors';
 
-const logros = [
-  { id: 1, titulo: 'Primera lección', descripcion: 'Completaste tu primera lección', emoji: '🌟', obtenido: true },
-  { id: 2, titulo: 'Racha de 3 días', descripcion: 'Aprendiste 3 días seguidos', emoji: '🔥', obtenido: true },
-  { id: 3, titulo: 'Perfecto', descripcion: '100% en una lección', emoji: '💯', obtenido: true },
-  { id: 4, titulo: 'Explorador', descripcion: 'Completa 5 temas diferentes', emoji: '🗺️', obtenido: false },
-  { id: 5, titulo: 'Maestro A1', descripcion: 'Completa todos los temas A1', emoji: '🎓', obtenido: false },
-  { id: 6, titulo: 'Racha de 7 días', descripcion: 'Aprendiste 7 días seguidos', emoji: '⚡', obtenido: false },
-  { id: 7, titulo: 'Bilingüe', descripcion: 'Completaste el nivel B2', emoji: '🌎', obtenido: false },
-  { id: 8, titulo: 'Velocista', descripcion: 'Completa una lección en menos de 1 min', emoji: '🏃', obtenido: false },
+const definicionLogros = [
+  { id: 1, titulo: 'Primera lección', descripcion: 'Completaste tu primera lección', emoji: '🌟',
+    obtenido: (p: { leccionesCompletadas: number }) => p.leccionesCompletadas >= 1 },
+  { id: 2, titulo: 'Racha de 3 días', descripcion: 'Aprendiste 3 días seguidos', emoji: '🔥',
+    obtenido: (p: { rachaDias: number }) => p.rachaDias >= 3 },
+  { id: 3, titulo: 'Perfecto', descripcion: '100% en una lección', emoji: '💯',
+    obtenido: (p: { puntos: number }) => p.puntos >= 50 },
+  { id: 4, titulo: 'Explorador', descripcion: 'Completa 5 temas diferentes', emoji: '🗺️',
+    obtenido: (p: { temasCompletados: number[] }) => p.temasCompletados.length >= 5 },
+  { id: 5, titulo: 'Maestro A1', descripcion: 'Completa todos los temas A1', emoji: '🎓',
+    obtenido: (p: { temasCompletados: number[] }) => [12, 13, 14, 15, 16, 17, 18].every(id => p.temasCompletados.includes(id)) },
+  { id: 6, titulo: 'Racha de 7 días', descripcion: 'Aprendiste 7 días seguidos', emoji: '⚡',
+    obtenido: (p: { rachaDias: number }) => p.rachaDias >= 7 },
+  { id: 7, titulo: 'Bilingüe', descripcion: 'Completaste el nivel B2', emoji: '🌎',
+    obtenido: (p: { temasCompletados: number[] }) => [28, 29, 30, 31, 32, 33, 34, 35].every(id => p.temasCompletados.includes(id)) },
+  { id: 8, titulo: 'Velocista', descripcion: 'Completa una lección en menos de 1 min', emoji: '🏃',
+    obtenido: () => false }, // requiere medir tiempo, pendiente de implementar
 ];
 
 export default function PerfilScreen() {
   const router = useRouter();
   const { colores } = useTema();
+  const { puntos, leccionesCompletadas, rachaDias, temasCompletados, nivelNombre, avatar } = useProgreso();
   const styles = crearEstilos(colores);
 
+  const logros = definicionLogros.map(l => ({
+    ...l,
+    obtenido: l.obtenido({ leccionesCompletadas, rachaDias, puntos, temasCompletados }),
+  }));
   const logrosObtenidos = logros.filter(l => l.obtenido).length;
 
   return (
@@ -26,24 +41,24 @@ export default function PerfilScreen() {
 
       <View style={styles.header}>
         <View style={styles.avatarWrap}>
-          <Text style={styles.avatarEmoji}>👤</Text>
+          <Text style={styles.avatarEmoji}>{avatar?.emoji || '👤'}</Text>
         </View>
-        <Text style={styles.nombre}>Diego</Text>
-        <Text style={styles.nivelTexto}>Nivel A1 — Principiante</Text>
+        <Text style={styles.nombre}>{avatar?.nombre || 'Estudiante'}</Text>
+        <Text style={styles.nivelTexto}>{nivelNombre ? `Nivel ${nivelNombre}` : 'Nivel sin elegir'}</Text>
         <View style={styles.rachaChip}>
           <Text style={styles.rachaEmoji}>🔥</Text>
-          <Text style={styles.rachaTexto}>3 días de racha</Text>
+          <Text style={styles.rachaTexto}>{rachaDias} {rachaDias === 1 ? 'día' : 'días'} de racha</Text>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumero}>12</Text>
+          <Text style={styles.statNumero}>{leccionesCompletadas}</Text>
           <Text style={styles.statLabel}>Lecciones</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumero}>240</Text>
+          <Text style={styles.statNumero}>{puntos}</Text>
           <Text style={styles.statLabel}>Puntos</Text>
         </View>
         <View style={styles.statDivider} />
@@ -97,7 +112,13 @@ export default function PerfilScreen() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.btnCerrar} onPress={() => router.push('/login')}>
+      <TouchableOpacity
+        style={styles.btnCerrar}
+        onPress={async () => {
+          await supabase.auth.signOut();
+          router.push('/login');
+        }}
+      >
         <Text style={styles.btnCerrarTexto}>Cerrar sesión</Text>
       </TouchableOpacity>
 
