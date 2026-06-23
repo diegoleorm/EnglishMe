@@ -1,45 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { obtenerLeccionesDeTema } from './contenido/lecciones';
 import { useProgreso } from './theme/ProgresoContext';
-
-const lecciones = [
-  {
-    id: 1,
-    ingles: "Hello! How are you?",
-    espanol: "¡Hola! ¿Cómo estás?",
-    opciones: ["Hello! I'm fine.", "Goodbye!", "My name is Diego."],
-    correcta: 0,
-  },
-  {
-    id: 2,
-    ingles: "What is your name?",
-    espanol: "¿Cuál es tu nombre?",
-    opciones: ["I am from Colombia.", "My name is Diego.", "I don't know."],
-    correcta: 1,
-  },
-  {
-    id: 3,
-    ingles: "Nice to meet you!",
-    espanol: "¡Mucho gusto!",
-    opciones: ["See you later!", "Nice to meet you too!", "I am tired."],
-    correcta: 1,
-  },
-  {
-    id: 4,
-    ingles: "Where are you from?",
-    espanol: "¿De dónde eres?",
-    opciones: ["I am from Colombia.", "I am 30 years old.", "I like coffee."],
-    correcta: 0,
-  },
-  {
-    id: 5,
-    ingles: "How old are you?",
-    espanol: "¿Cuántos años tienes?",
-    opciones: ["I am fine.", "I am 25 years old.", "I like music."],
-    correcta: 1,
-  },
-];
 
 export default function LeccionScreen() {
   const router = useRouter();
@@ -49,6 +12,7 @@ export default function LeccionScreen() {
   const tutorEmoji = emoji as string || '🎓';
   const tituloTema = temaTitulo as string || 'Lección';
   const idTemaNumero = temaId ? parseInt(temaId as string, 10) : null;
+  const lecciones = obtenerLeccionesDeTema(idTemaNumero ?? 0);
 
   const [paso, setPaso] = useState(0);
   const [seleccion, setSeleccion] = useState<number | null>(null);
