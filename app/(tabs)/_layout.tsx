@@ -1,19 +1,21 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTema } from '../theme/ThemeContext';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { colores } = useTema();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#3B6FE8',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: colores.primario,
+        tabBarInactiveTintColor: colores.textoTerciario,
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: '#1E293B',
+          backgroundColor: colores.fondoTarjeta,
+          borderTopColor: colores.borde,
           borderTopWidth: 1,
           height: 56 + insets.bottom,
           paddingTop: 8,

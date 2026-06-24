@@ -3,6 +3,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useTema } from './theme/ThemeContext';
+import type { Tema } from './theme/colors';
 import {
   cancelarRecordatorios,
   programarRecordatorioDiario,
@@ -11,6 +13,8 @@ import {
 
 export default function NotificacionesScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
   const [activado, setActivado] = useState(false);
   const [hora, setHora] = useState(new Date(new Date().setHours(20, 0, 0, 0)));
   const [mostrarPicker, setMostrarPicker] = useState(false);
@@ -107,7 +111,7 @@ export default function NotificacionesScreen() {
           <Switch
             value={activado}
             onValueChange={toggleActivado}
-            trackColor={{ false: '#334155', true: '#3B6FE8' }}
+            trackColor={{ false: colores.borde, true: colores.primario }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -161,135 +165,137 @@ export default function NotificacionesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    backgroundColor: '#3B6FE8',
-    paddingTop: 56,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-  },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backTexto: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: -16,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  toggleIcono: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#EFF4FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleEmoji: {
-    fontSize: 24,
-  },
-  toggleInfo: {
-    flex: 1,
-  },
-  toggleTitulo: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  toggleDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  seccionTitulo: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
-    paddingHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  horaCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  horaEmoji: {
-    fontSize: 28,
-  },
-  horaInfo: {
-    flex: 1,
-  },
-  horaLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 2,
-  },
-  horaValor: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#3B6FE8',
-  },
-  horaArrow: {
-    fontSize: 20,
-    color: '#CBD5E1',
-  },
-  btnConfirmarIOS: {
-    backgroundColor: '#3B6FE8',
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  btnConfirmarTexto: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  infoBox: {
-    backgroundColor: '#EFF4FF',
-    marginHorizontal: 16,
-    marginTop: 20,
-    borderRadius: 12,
-    padding: 14,
-  },
-  infoTexto: {
-    fontSize: 12,
-    color: '#3B6FE8',
-    lineHeight: 18,
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    header: {
+      backgroundColor: colores.primario,
+      paddingTop: 56,
+      paddingBottom: 28,
+      paddingHorizontal: 20,
+    },
+    backBtn: {
+      marginBottom: 16,
+    },
+    backTexto: {
+      color: 'rgba(255,255,255,0.85)',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 6,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.75)',
+    },
+    card: {
+      backgroundColor: colores.fondoTarjeta,
+      marginHorizontal: 16,
+      marginTop: -16,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 0.5,
+      borderColor: colores.borde,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    toggleIcono: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: colores.fondoInput,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    toggleEmoji: {
+      fontSize: 24,
+    },
+    toggleInfo: {
+      flex: 1,
+    },
+    toggleTitulo: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      marginBottom: 2,
+    },
+    toggleDesc: {
+      fontSize: 12,
+      color: colores.textoTerciario,
+    },
+    seccionTitulo: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      paddingHorizontal: 16,
+      marginTop: 24,
+      marginBottom: 12,
+    },
+    horaCard: {
+      backgroundColor: colores.fondoTarjeta,
+      marginHorizontal: 16,
+      borderRadius: 16,
+      borderWidth: 0.5,
+      borderColor: colores.borde,
+      padding: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    horaEmoji: {
+      fontSize: 28,
+    },
+    horaInfo: {
+      flex: 1,
+    },
+    horaLabel: {
+      fontSize: 12,
+      color: colores.textoTerciario,
+      marginBottom: 2,
+    },
+    horaValor: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colores.primario,
+    },
+    horaArrow: {
+      fontSize: 20,
+      color: colores.textoTerciario,
+    },
+    btnConfirmarIOS: {
+      backgroundColor: colores.primario,
+      marginHorizontal: 16,
+      marginTop: 12,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    btnConfirmarTexto: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    infoBox: {
+      backgroundColor: colores.fondoInput,
+      marginHorizontal: 16,
+      marginTop: 20,
+      borderRadius: 12,
+      padding: 14,
+    },
+    infoTexto: {
+      fontSize: 12,
+      color: colores.primario,
+      lineHeight: 18,
+    },
+  });
+}

@@ -44,7 +44,7 @@ export default function PerfilScreen() {
           <Text style={styles.avatarEmoji}>{avatar?.emoji || '👤'}</Text>
         </View>
         <Text style={styles.nombre}>{avatar?.nombre || 'Estudiante'}</Text>
-        <Text style={styles.nivelTexto}>{nivelNombre ? `Nivel ${nivelNombre}` : 'Nivel sin elegir'}</Text>
+        <Text style={styles.nivelTexto}>{nivelNombre || 'Nivel sin elegir'}</Text>
         <View style={styles.rachaChip}>
           <Text style={styles.rachaEmoji}>🔥</Text>
           <Text style={styles.rachaTexto}>{rachaDias} {rachaDias === 1 ? 'día' : 'días'} de racha</Text>

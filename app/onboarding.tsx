@@ -11,6 +11,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTema } from './theme/ThemeContext';
+import type { Tema } from './theme/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +42,8 @@ const slides = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { colores } = useTema();
+  const styles = crearEstilos(colores);
   const [paginaActual, setPaginaActual] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -108,67 +112,69 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  slide: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  iconoWrap: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-  },
-  icono: {
-    fontSize: 80,
-  },
-  titulo: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  descripcion: {
-    fontSize: 15,
-    color: '#94A3B8',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  puntosWrap: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 32,
-  },
-  punto: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#1E293B',
-  },
-  puntoActivo: {
-    width: 24,
-    backgroundColor: '#3B6FE8',
-  },
-  btnSiguiente: {
-    backgroundColor: '#3B6FE8',
-    borderRadius: 16,
-    paddingVertical: 18,
-    marginHorizontal: 24,
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  btnTexto: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-});
+function crearEstilos(colores: Tema) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colores.fondo,
+    },
+    slide: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 32,
+    },
+    iconoWrap: {
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 40,
+    },
+    icono: {
+      fontSize: 80,
+    },
+    titulo: {
+      fontSize: 26,
+      fontWeight: '700',
+      color: colores.textoPrimario,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    descripcion: {
+      fontSize: 15,
+      color: colores.textoSecundario,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    puntosWrap: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8,
+      marginBottom: 32,
+    },
+    punto: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colores.bordeSutil,
+    },
+    puntoActivo: {
+      width: 24,
+      backgroundColor: colores.primario,
+    },
+    btnSiguiente: {
+      backgroundColor: colores.primario,
+      borderRadius: 16,
+      paddingVertical: 18,
+      marginHorizontal: 24,
+      marginBottom: 40,
+      alignItems: 'center',
+    },
+    btnTexto: {
+      color: '#FFFFFF',
+      fontSize: 17,
+      fontWeight: '700',
+    },
+  });
+}
