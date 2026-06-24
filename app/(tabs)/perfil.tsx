@@ -8,7 +8,7 @@ import type { Tema } from '../theme/colors';
 const definicionLogros = [
   { id: 1, titulo: 'Primera lección', descripcion: 'Completaste tu primera lección', emoji: '🌟',
     obtenido: (p: { leccionesCompletadas: number }) => p.leccionesCompletadas >= 1 },
-  { id: 2, titulo: 'Racha de 3 días', descripcion: 'Aprendiste 3 días seguidos', emoji: '🔥',
+  { id: 2, titulo: 'Ritmo de 3 días', descripcion: 'Aprendiste 3 días seguidos', emoji: '🔥',
     obtenido: (p: { rachaDias: number }) => p.rachaDias >= 3 },
   { id: 3, titulo: 'Perfecto', descripcion: '100% en una lección', emoji: '💯',
     obtenido: (p: { puntos: number }) => p.puntos >= 50 },
@@ -16,7 +16,7 @@ const definicionLogros = [
     obtenido: (p: { temasCompletados: number[] }) => p.temasCompletados.length >= 5 },
   { id: 5, titulo: 'Maestro A1', descripcion: 'Completa todos los temas A1', emoji: '🎓',
     obtenido: (p: { temasCompletados: number[] }) => [12, 13, 14, 15, 16, 17, 18].every(id => p.temasCompletados.includes(id)) },
-  { id: 6, titulo: 'Racha de 7 días', descripcion: 'Aprendiste 7 días seguidos', emoji: '⚡',
+  { id: 6, titulo: 'Ritmo de 7 días', descripcion: 'Aprendiste 7 días seguidos', emoji: '⚡',
     obtenido: (p: { rachaDias: number }) => p.rachaDias >= 7 },
   { id: 7, titulo: 'Bilingüe', descripcion: 'Completaste el nivel B2', emoji: '🌎',
     obtenido: (p: { temasCompletados: number[] }) => [28, 29, 30, 31, 32, 33, 34, 35].every(id => p.temasCompletados.includes(id)) },
@@ -47,7 +47,7 @@ export default function PerfilScreen() {
         <Text style={styles.nivelTexto}>{nivelNombre || 'Nivel sin elegir'}</Text>
         <View style={styles.rachaChip}>
           <Text style={styles.rachaEmoji}>🔥</Text>
-          <Text style={styles.rachaTexto}>{rachaDias} {rachaDias === 1 ? 'día' : 'días'} de racha</Text>
+          <Text style={styles.rachaTexto}>Llevas {rachaDias} {rachaDias === 1 ? 'día' : 'días'} de ritmo</Text>
         </View>
       </View>
 

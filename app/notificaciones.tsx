@@ -94,7 +94,7 @@ export default function NotificacionesScreen() {
           <Text style={styles.backTexto}>← Volver</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Notificaciones</Text>
-        <Text style={styles.subtitle}>Recibe recordatorios para no perder tu racha</Text>
+        <Text style={styles.subtitle}>Recibe recordatorios para no perder tu ritmo</Text>
       </View>
 
       <View style={styles.card}>

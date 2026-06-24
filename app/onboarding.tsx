@@ -35,7 +35,7 @@ const slides = [
     id: 3,
     emoji: '🏆',
     titulo: 'Sigue tu progreso',
-    descripcion: 'Gana logros, mantén tu racha diaria y observa cómo mejora tu nivel de inglés semana a semana.',
+    descripcion: 'Gana logros, mantén tu ritmo diario y observa cómo mejora tu nivel de inglés semana a semana.',
     color: '#CA8A04',
   },
 ];

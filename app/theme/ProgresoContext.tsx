@@ -134,18 +134,47 @@ export function ProgresoProvider({ children }: { children: ReactNode }) {
         }
 
         if (data) {
+          // El usuario ya tenía progreso guardado en la nube (login normal).
           setDatos(filaABusinessData(data));
         } else {
-          // Usuario nuevo: aún no tiene fila de progreso, creamos una vacía.
-          setDatos(progresoInicial);
-          await supabase.from('progreso').insert(datosAFilaSupabase(sesionActual.user.id, progresoInicial));
+          // Usuario nuevo en Supabase: puede que venga de usar la app como
+          // invitado. Si hay progreso guardado localmente, lo migramos hacia
+          // la cuenta nueva en vez de empezar de cero.
+          const progresoInvitado = await leerProgresoLocal();
+          const datosIniciales = progresoInvitado ?? progresoInicial;
+
+          setDatos(datosIniciales);
+          await supabase.from('progreso').insert(datosAFilaSupabase(sesionActual.user.id, datosIniciales));
+
+          if (progresoInvitado) {
+            // Ya se migró a la cuenta, limpiamos el progreso local de invitado.
+            await AsyncStorage.removeItem(CLAVE_PROGRESO);
+          }
         }
       } else {
-        const guardado = await AsyncStorage.getItem(CLAVE_PROGRESO);
-        setDatos(guardado ? { ...progresoInicial, ...JSON.parse(guardado) } : progresoInicial);
+        const guardado = await leerProgresoLocal();
+        setDatos(guardado ?? progresoInicial);
       }
     } catch (e) {
       console.log('Error cargando progreso:', e);
+    }
+  };
+
+  const leerProgresoLocal = async (): Promise<ProgresoData | null> => {
+    try {
+      const guardado = await AsyncStorage.getItem(CLAVE_PROGRESO);
+      if (!guardado) return null;
+      const datosGuardados: ProgresoData = { ...progresoInicial, ...JSON.parse(guardado) };
+      // Solo cuenta como "progreso real para migrar" si el invitado de verdad
+      // avanzó algo (eligió nivel, avatar, o completó algún tema).
+      const tieneAvance =
+        datosGuardados.nivelId !== null ||
+        datosGuardados.avatar !== null ||
+        datosGuardados.temasCompletados.length > 0;
+      return tieneAvance ? datosGuardados : null;
+    } catch (e) {
+      console.log('Error leyendo progreso local:', e);
+      return null;
     }
   };
 
