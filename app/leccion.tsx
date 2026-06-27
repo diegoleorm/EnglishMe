@@ -31,10 +31,12 @@ function AvatarHablando({
   nombre,
   hablando,
   escuchando,
+  onPress,
 }: {
   nombre: string;
   hablando: boolean;
   escuchando: boolean;
+  onPress: () => void;
 }) {
   const pulso = useRef(new Animated.Value(1)).current;
   const rotacion = useRef(new Animated.Value(0)).current;
@@ -72,7 +74,11 @@ function AvatarHablando({
   const rotate = rotacion.interpolate({ inputRange: [-1, 1], outputRange: ['-4deg', '4deg'] });
 
   return (
-    <View style={estilosAvatar.contenedor}>
+    <TouchableOpacity
+      style={estilosAvatar.contenedor}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
       {hablando && (
         <>
           <Animated.View style={[estilosAvatar.anillo, { backgroundColor: datos.color + '20', transform: [{ scale: pulso }] }]} />
@@ -94,10 +100,10 @@ function AvatarHablando({
         { backgroundColor: hablando ? datos.color : escuchando ? '#22C55E' : '#64748B' }
       ]}>
         <Text style={estilosAvatar.badgeTexto}>
-          {hablando ? '🔊 Hablando' : escuchando ? '👂 Escuchando' : '💬 ' + nombre}
+          {hablando ? '🔊 Hablando' : escuchando ? '👂 Escuchando' : '🔁 Toca para repetir'}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -229,7 +235,6 @@ export default function LeccionScreen() {
   const [terminado, setTerminado]     = useState(false);
   const [guardando, setGuardando]     = useState(false);
   const [avatarHablando, setAvatarHablando] = useState(false);
-  // Ref para el callback que se ejecuta cuando el avatar termina de hablar
   const alTerminarHablar = useRef<(() => void) | null>(null);
   const [escuchando, setEscuchando]   = useState(false);
   const [textoEscuchado, setTextoEscuchado] = useState('');
@@ -239,26 +244,23 @@ export default function LeccionScreen() {
   const soundRef     = useRef<Audio.Sound | null>(null);
   const reconociendo = useRef(false);
   const grabacion    = useRef<Audio.Recording | null>(null);
-  // FIX 1: Ref para evitar que hablarAvatar se llame dos veces por pregunta
   const hablandoRef  = useRef(false);
-  // FIX 2: Ref para saber si el componente sigue montado
   const montado      = useRef(true);
+  // Guardamos el texto de la pregunta actual para poder repetirla
+  const textoPreguntaActual = useRef('');
 
   const leccionActual = lecciones[paso];
   const progreso      = (paso / lecciones.length) * 100;
 
-  // FIX 2: Marcar como desmontado al salir
   useEffect(() => {
     montado.current = true;
-    return () => {
-      montado.current = false;
-    };
+    return () => { montado.current = false; };
   }, []);
 
   // Al cambiar de pregunta → el avatar la lee en voz alta
   useEffect(() => {
     if (!leccionActual || terminado) return;
-    if (hablandoRef.current) return; // FIX 1: evitar doble llamada
+    if (hablandoRef.current) return;
     hablandoRef.current = true;
 
     setSeleccion(null);
@@ -266,11 +268,11 @@ export default function LeccionScreen() {
     setTextoEscuchado('');
     setMensajeFeedback('');
 
-    // Reemplazar ___ por una pausa natural (pausa larga con puntos suspensivos)
     const textoLimpio = leccionActual.ingles.replace(/___/g, '... ');
-    const texto = textoLimpio;
+    textoPreguntaActual.current = textoLimpio;
+
     const timer = setTimeout(() => {
-      hablarAvatar(texto);
+      hablarAvatar(textoLimpio);
     }, 400);
 
     return () => {
@@ -279,7 +281,7 @@ export default function LeccionScreen() {
     };
   }, [paso]);
 
-  // FIX 2: Detener todo el audio al salir de la pantalla
+  // Detener todo al salir
   useEffect(() => {
     return () => {
       Speech.stop();
@@ -294,7 +296,7 @@ export default function LeccionScreen() {
     };
   }, []);
 
-  // ── Detener todo audio activo ─────────────────────────────────────────────
+  // ── Detener todo audio ────────────────────────────────────────────────────
   const detenerTodoAudio = async () => {
     Speech.stop();
     if (soundRef.current) {
@@ -321,8 +323,6 @@ export default function LeccionScreen() {
       if (!montado.current) return;
 
       if (!base64) {
-        // generarVozBase64 ya llamó a hablarNativo internamente
-        // Solo estimamos cuándo termina para apagar la animación
         const duracion = Math.max(texto.length * 55, 2000);
         setTimeout(() => {
           if (montado.current) {
@@ -354,6 +354,16 @@ export default function LeccionScreen() {
       console.error('hablarAvatar error:', e);
       if (montado.current) setAvatarHablando(false);
     }
+  };
+
+  // ── Repetir la pregunta actual al tocar el avatar ─────────────────────────
+  const repetirPregunta = () => {
+    if (escuchando || procesando) return;
+    // Si ya hay una respuesta seleccionada, no repetir
+    if (seleccion !== null) return;
+    hablandoRef.current = false;
+    alTerminarHablar.current = null;
+    hablarAvatar(textoPreguntaActual.current);
   };
 
   // ── Iniciar grabación ─────────────────────────────────────────────────────
@@ -484,7 +494,6 @@ export default function LeccionScreen() {
 
     setMensajeFeedback(textoFeedback);
 
-    // Avanzar al siguiente paso SOLO cuando el avatar termine de hablar el feedback
     alTerminarHablar.current = () => {
       if (!montado.current) return;
       hablandoRef.current = false;
@@ -495,7 +504,7 @@ export default function LeccionScreen() {
         } else {
           setPaso(prev => prev + 1);
         }
-      }, 600); // Pequeña pausa natural antes de la siguiente pregunta
+      }, 600);
     };
 
     hablarAvatar(textoFeedback);
@@ -580,10 +589,12 @@ export default function LeccionScreen() {
 
       <Text style={styles.temaTitulo}>{tituloTema}</Text>
 
+      {/* Avatar toca para repetir */}
       <AvatarHablando
         nombre={nombreAvatar}
         hablando={avatarHablando}
         escuchando={escuchando}
+        onPress={repetirPregunta}
       />
 
       <View style={styles.burbujaWrap}>
