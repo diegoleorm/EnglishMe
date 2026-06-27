@@ -294,18 +294,25 @@ export default function LeccionScreen() {
     if (yaRespondio.current) return;
 
     const textoReconocido = event.results[0]?.transcript ?? '';
-    if (!textoReconocido) return;
-
-    setTextoEscuchado(`"${textoReconocido}"`);
     const indice = encontrarMejorOpcion(textoReconocido, leccionActual.opciones);
 
     if (indice !== -1) {
       yaRespondio.current = true;
       setProcesando(false);
+      setTextoEscuchado('');
       responder(indice);
     } else {
-      setTextoEscuchado(`Escuché: "${textoReconocido}"\nNo coincide. Toca una opción.`);
       setProcesando(false);
+      setTextoEscuchado('');
+      const frasesNoCoincide = [
+        "Hmm, I didn't catch that. Try again!",
+        "Sorry, could you repeat that?",
+        "Try once more, you can do it!",
+        "Almost! Say it again please.",
+        "I didn't quite get that. One more time!",
+        "Keep trying! Say it again.",
+      ];
+      hablarAvatar(frasesNoCoincide[Math.floor(Math.random() * frasesNoCoincide.length)]);
     }
   });
 
@@ -321,9 +328,17 @@ export default function LeccionScreen() {
     if (montado.current) {
       setEscuchando(false);
       setProcesando(false);
-      setTextoEscuchado('No entendí. Toca una opción.');
+      setTextoEscuchado('');
+      const frasesError = [
+        "I didn't hear you. Try again!",
+        "Speak up a little! Try again.",
+        "I'm listening! Try once more.",
+        "Come on, you can do it! Try again.",
+      ];
+      hablarAvatar(frasesError[Math.floor(Math.random() * frasesError.length)]);
     }
   });
+
 
   // Al cambiar de pregunta → el avatar la lee en voz alta
   useEffect(() => {
