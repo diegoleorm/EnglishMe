@@ -352,11 +352,21 @@ export default function LeccionScreen() {
     setTextoEscuchado('');
     setMensajeFeedback('');
 
-    const textoLimpio = leccionActual.ingles.replace(/___/g, '... ');
-    textoPreguntaActual.current = textoLimpio;
+    const tieneBlanco = leccionActual.ingles.includes('___');
+    const textoFinal = tieneBlanco
+      ? leccionActual.ingles.replace(/___/g, ', blank,')
+      : leccionActual.ingles;
+    textoPreguntaActual.current = textoFinal;
 
     const timer = setTimeout(() => {
-      hablarAvatar(textoLimpio);
+      if (tieneBlanco) {
+        const partes = leccionActual.ingles.split('___');
+        const parte1 = partes[0].trim().replace(/,\s*$/, '');
+        const parte2 = (partes[1] || '').trim().replace(/^[,.]\s*/, '');
+        hablarAvatarConPausa(parte1, parte2);
+      } else {
+        hablarAvatar(textoFinal);
+      }
     }, 400);
 
     return () => {
@@ -386,6 +396,35 @@ export default function LeccionScreen() {
         await soundRef.current.unloadAsync();
       } catch (_) {}
       soundRef.current = null;
+    }
+    if (montado.current) setAvatarHablando(false);
+  };
+
+  // ── Hablar con pausa real (para preguntas con ___) ──────────────────────────
+  const hablarAvatarConPausa = async (parte1: string, parte2: string) => {
+    if (!montado.current) return;
+    setAvatarHablando(true);
+    await new Promise<void>((resolve) => {
+      Speech.speak(parte1, {
+        language: 'en-US',
+        rate: 0.85,
+        onDone: () => resolve(),
+        onStopped: () => resolve(),
+        onError: () => resolve(),
+      });
+    });
+    await new Promise(r => setTimeout(r, 600));
+    if (!montado.current) { setAvatarHablando(false); return; }
+    if (parte2) {
+      await new Promise<void>((resolve) => {
+        Speech.speak(parte2, {
+          language: 'en-US',
+          rate: 0.85,
+          onDone: () => resolve(),
+          onStopped: () => resolve(),
+          onError: () => resolve(),
+        });
+      });
     }
     if (montado.current) setAvatarHablando(false);
   };
@@ -442,7 +481,15 @@ export default function LeccionScreen() {
     if (escuchando || procesando || seleccion !== null) return;
     hablandoRef.current = false;
     alTerminarHablar.current = null;
-    hablarAvatar(textoPreguntaActual.current);
+    const tieneBlanco = leccionActual.ingles.includes('___');
+    if (tieneBlanco) {
+      const partes = leccionActual.ingles.split('___');
+      const parte1 = partes[0].trim().replace(/,\s*$/, '');
+      const parte2 = (partes[1] || '').trim().replace(/^[,.]\s*/, '');
+      hablarAvatarConPausa(parte1, parte2);
+    } else {
+      hablarAvatar(textoPreguntaActual.current);
+    }
   };
 
   // ── Iniciar reconocimiento de voz ─────────────────────────────────────────
@@ -481,28 +528,55 @@ export default function LeccionScreen() {
   };
 
   // ── Encontrar opción más parecida ─────────────────────────────────────────
+  const limpiarTexto = (t: string) =>
+    t.toLowerCase()
+      .replace(/[.,!?;:'"¿¡]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
   const encontrarMejorOpcion = (texto: string, opciones: string[]): number => {
-    const textoLimpio = texto.toLowerCase().trim();
+    const textoLimpio = limpiarTexto(texto);
     let mejorIndice = -1;
     let mejorPuntaje = 0;
 
     opciones.forEach((opcion, i) => {
-      const opcionLimpia = opcion.toLowerCase().trim();
-      if (textoLimpio === opcionLimpia) { mejorIndice = i; mejorPuntaje = 100; return; }
+      const opcionLimpia = limpiarTexto(opcion);
+
+      if (textoLimpio === opcionLimpia) {
+        mejorIndice = i; mejorPuntaje = 100; return;
+      }
+
       if (textoLimpio.includes(opcionLimpia) || opcionLimpia.includes(textoLimpio)) {
-        const puntaje = (Math.min(textoLimpio.length, opcionLimpia.length) / Math.max(textoLimpio.length, opcionLimpia.length)) * 90;
+        const puntaje = (Math.min(textoLimpio.length, opcionLimpia.length) /
+          Math.max(textoLimpio.length, opcionLimpia.length)) * 95;
         if (puntaje > mejorPuntaje) { mejorPuntaje = puntaje; mejorIndice = i; }
       }
-      const palabrasTexto  = textoLimpio.split(' ').filter(p => p.length > 2);
-      const palabrasOpcion = opcionLimpia.split(' ').filter(p => p.length > 2);
+
+      const palabrasTexto  = textoLimpio.split(' ').filter(p => p.length > 1);
+      const palabrasOpcion = opcionLimpia.split(' ').filter(p => p.length > 1);
       const comunes = palabrasTexto.filter(p => palabrasOpcion.includes(p));
-      if (comunes.length > 0) {
-        const puntaje = (comunes.length / Math.max(palabrasTexto.length, palabrasOpcion.length)) * 70;
+
+      if (comunes.length > 0 && palabrasOpcion.length > 0) {
+        const cobertura = comunes.length / palabrasOpcion.length;
+        const puntaje = cobertura * 85;
         if (puntaje > mejorPuntaje) { mejorPuntaje = puntaje; mejorIndice = i; }
       }
     });
 
-    return mejorPuntaje > 40 ? mejorIndice : -1;
+    // Para opciones de una sola palabra, buscar coincidencia directa en las palabras dichas
+    opciones.forEach((opcion, i) => {
+      const opcionLimpia = limpiarTexto(opcion);
+      if (opcionLimpia.split(' ').length === 1) {
+        const palabrasDichas = textoLimpio.split(' ');
+        if (palabrasDichas.includes(opcionLimpia)) {
+          if (90 > mejorPuntaje) { mejorPuntaje = 90; mejorIndice = i; }
+        }
+      }
+    });
+
+    const esOpcionCorta = opciones.every(o => limpiarTexto(o).split(' ').length <= 2);
+    const umbral = esOpcionCorta ? 15 : 30;
+    return mejorPuntaje > umbral ? mejorIndice : -1;
   };
 
   // ── Responder ─────────────────────────────────────────────────────────────
