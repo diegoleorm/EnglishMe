@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.diegoleorm.EnglishMe"
     },
     "web": {
       "output": "static",
@@ -46,11 +47,18 @@
           "color": "#3B6FE8"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-speech-recognition"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "12cbad78-d5ef-42c5-8763-d8ba66f6ff82"
+      }
     }
   }
 }

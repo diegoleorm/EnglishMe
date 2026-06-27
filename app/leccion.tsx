@@ -73,7 +73,6 @@ function AvatarHablando({
 
   return (
     <View style={estilosAvatar.contenedor}>
-      {/* Anillos de pulso */}
       {hablando && (
         <>
           <Animated.View style={[estilosAvatar.anillo, { backgroundColor: datos.color + '20', transform: [{ scale: pulso }] }]} />
@@ -83,8 +82,6 @@ function AvatarHablando({
       {escuchando && (
         <Animated.View style={[estilosAvatar.anillo, { backgroundColor: '#22C55E20', transform: [{ scale: pulso }] }]} />
       )}
-
-      {/* Círculo principal */}
       <Animated.View style={[
         estilosAvatar.circulo,
         { backgroundColor: datos.bg, borderColor: hablando ? datos.color : escuchando ? '#22C55E' : datos.color + '40' },
@@ -92,8 +89,6 @@ function AvatarHablando({
       ]}>
         <Text style={estilosAvatar.emoji}>{datos.emoji}</Text>
       </Animated.View>
-
-      {/* Badge de estado */}
       <View style={[
         estilosAvatar.badge,
         { backgroundColor: hablando ? datos.color : escuchando ? '#22C55E' : '#64748B' }
@@ -133,9 +128,7 @@ const estilosAvatar = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
   },
-  emoji: {
-    fontSize: 52,
-  },
+  emoji: { fontSize: 52 },
   badge: {
     position: 'absolute',
     bottom: 10,
@@ -143,11 +136,7 @@ const estilosAvatar = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 20,
   },
-  badgeTexto: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  badgeTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
 
 // ── Componente Micrófono ─────────────────────────────────────────────────────
@@ -213,24 +202,11 @@ const estilosMic = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#334155',
   },
-  botonActivo: {
-    backgroundColor: '#14532D',
-    borderColor: '#22C55E',
-  },
-  botonDesactivado: {
-    opacity: 0.4,
-  },
-  icono: {
-    fontSize: 22,
-  },
-  texto: {
-    color: '#94A3B8',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  textoActivo: {
-    color: '#22C55E',
-  },
+  botonActivo: { backgroundColor: '#14532D', borderColor: '#22C55E' },
+  botonDesactivado: { opacity: 0.4 },
+  icono: { fontSize: 22 },
+  texto: { color: '#94A3B8', fontSize: 14, fontWeight: '600' },
+  textoActivo: { color: '#22C55E' },
 });
 
 // ── Pantalla principal ───────────────────────────────────────────────────────
@@ -253,45 +229,108 @@ export default function LeccionScreen() {
   const [terminado, setTerminado]     = useState(false);
   const [guardando, setGuardando]     = useState(false);
   const [avatarHablando, setAvatarHablando] = useState(false);
+  // Ref para el callback que se ejecuta cuando el avatar termina de hablar
+  const alTerminarHablar = useRef<(() => void) | null>(null);
   const [escuchando, setEscuchando]   = useState(false);
   const [textoEscuchado, setTextoEscuchado] = useState('');
   const [procesando, setProcesando]   = useState(false);
   const [mensajeFeedback, setMensajeFeedback] = useState('');
 
-  const soundRef      = useRef<Audio.Sound | null>(null);
-  const reconociendo  = useRef(false);
-  const grabacion     = useRef<Audio.Recording | null>(null);
+  const soundRef     = useRef<Audio.Sound | null>(null);
+  const reconociendo = useRef(false);
+  const grabacion    = useRef<Audio.Recording | null>(null);
+  // FIX 1: Ref para evitar que hablarAvatar se llame dos veces por pregunta
+  const hablandoRef  = useRef(false);
+  // FIX 2: Ref para saber si el componente sigue montado
+  const montado      = useRef(true);
 
   const leccionActual = lecciones[paso];
-  const progreso      = ((paso) / lecciones.length) * 100;
+  const progreso      = (paso / lecciones.length) * 100;
+
+  // FIX 2: Marcar como desmontado al salir
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+    };
+  }, []);
 
   // Al cambiar de pregunta → el avatar la lee en voz alta
   useEffect(() => {
     if (!leccionActual || terminado) return;
+    if (hablandoRef.current) return; // FIX 1: evitar doble llamada
+    hablandoRef.current = true;
+
     setSeleccion(null);
     setCorrecto(null);
     setTextoEscuchado('');
     setMensajeFeedback('');
-    const texto = `${leccionActual.ingles}. Choose the correct answer.`;
-    setTimeout(() => hablarAvatar(texto), 400);
+
+    // Reemplazar ___ por una pausa natural (pausa larga con puntos suspensivos)
+    const textoLimpio = leccionActual.ingles.replace(/___/g, '... ');
+    const texto = textoLimpio;
+    const timer = setTimeout(() => {
+      hablarAvatar(texto);
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      hablandoRef.current = false;
+    };
   }, [paso]);
 
-  // ── Reproducir voz con ElevenLabs + expo-av ──────────────────────────────
-  const hablarAvatar = async (texto: string) => {
-    try {
-      setAvatarHablando(true);
+  // FIX 2: Detener todo el audio al salir de la pantalla
+  useEffect(() => {
+    return () => {
+      Speech.stop();
       if (soundRef.current) {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
+        soundRef.current.stopAsync().then(() => soundRef.current?.unloadAsync());
         soundRef.current = null;
       }
+      if (grabacion.current) {
+        grabacion.current.stopAndUnloadAsync();
+        grabacion.current = null;
+      }
+    };
+  }, []);
+
+  // ── Detener todo audio activo ─────────────────────────────────────────────
+  const detenerTodoAudio = async () => {
+    Speech.stop();
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+      } catch (_) {}
+      soundRef.current = null;
+    }
+    if (montado.current) setAvatarHablando(false);
+  };
+
+  // ── Reproducir voz ────────────────────────────────────────────────────────
+  const hablarAvatar = async (texto: string) => {
+    try {
+      await detenerTodoAudio();
+      if (!montado.current) return;
+      setAvatarHablando(true);
+
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
 
       const base64 = await generarVozBase64(texto, nombreAvatar);
+
+      if (!montado.current) return;
+
       if (!base64) {
-        // Fallback a texto a voz del sistema
-        Speech.speak(texto, { language: 'en-US', rate: 0.9 });
-        setTimeout(() => setAvatarHablando(false), texto.length * 60);
+        // generarVozBase64 ya llamó a hablarNativo internamente
+        // Solo estimamos cuándo termina para apagar la animación
+        const duracion = Math.max(texto.length * 55, 2000);
+        setTimeout(() => {
+          if (montado.current) {
+            setAvatarHablando(false);
+            alTerminarHablar.current?.();
+            alTerminarHablar.current = null;
+          }
+        }, duracion);
         return;
       }
 
@@ -302,24 +341,26 @@ export default function LeccionScreen() {
       soundRef.current = sound;
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
-          setAvatarHablando(false);
+          if (montado.current) {
+            setAvatarHablando(false);
+            alTerminarHablar.current?.();
+            alTerminarHablar.current = null;
+          }
+          sound.unloadAsync();
+          soundRef.current = null;
         }
       });
     } catch (e) {
       console.error('hablarAvatar error:', e);
-      setAvatarHablando(false);
+      if (montado.current) setAvatarHablando(false);
     }
   };
 
-  // ── Iniciar grabación de voz ──────────────────────────────────────────────
+  // ── Iniciar grabación ─────────────────────────────────────────────────────
   const iniciarEscucha = async () => {
     if (seleccion !== null || procesando || avatarHablando) return;
     try {
-      // Detener cualquier audio reproduciéndose
-      if (soundRef.current) {
-        await soundRef.current.stopAsync();
-        setAvatarHablando(false);
-      }
+      await detenerTodoAudio();
 
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
@@ -327,10 +368,7 @@ export default function LeccionScreen() {
         return;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
 
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
@@ -345,7 +383,7 @@ export default function LeccionScreen() {
     }
   };
 
-  // ── Terminar grabación y comparar respuesta ───────────────────────────────
+  // ── Terminar grabación ────────────────────────────────────────────────────
   const terminarEscucha = async () => {
     if (!reconociendo.current || !grabacion.current) return;
     reconociendo.current = false;
@@ -356,10 +394,6 @@ export default function LeccionScreen() {
     try {
       await grabacion.current.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-
-      // Usar expo-speech para reconocimiento de voz (Speech Recognition nativo)
-      // Como expo-speech no tiene STT, usamos comparación por texto con las opciones
-      // disponibles mediante reconocimiento nativo del dispositivo
       const uri = grabacion.current.getURI();
       grabacion.current = null;
 
@@ -368,9 +402,6 @@ export default function LeccionScreen() {
         setTextoEscuchado('No se grabó audio. Intenta de nuevo.');
         return;
       }
-
-      // Intentar reconocimiento con la API nativa del dispositivo via fetch
-      // Como alternativa gratuita: comparamos usando expo-speech STT si está disponible
       await evaluarRespuestaVoz(uri);
     } catch (e) {
       console.error('terminarEscucha error:', e);
@@ -382,25 +413,15 @@ export default function LeccionScreen() {
   // ── Evaluar respuesta de voz ──────────────────────────────────────────────
   const evaluarRespuestaVoz = async (audioUri: string) => {
     try {
-      // Intentar con Web Speech API via expo-speech recognition
-      // Si no está disponible, usar reconocimiento nativo del SO
       const opciones = leccionActual.opciones;
-      const correcta = opciones[leccionActual.correcta];
-
-      // Como Speech-to-Text gratuito: usamos el reconocimiento nativo
-      // del dispositivo disponible en Android e iOS
       let textoReconocido = '';
 
       if (Platform.OS === 'android' || Platform.OS === 'ios') {
-        // Usar expo-speech para TTS y el micrófono del sistema para STT
-        // En este caso mostramos las opciones para que el usuario elija
-        // después de intentar el reconocimiento
         textoReconocido = await reconocerVozNativa(audioUri);
       }
 
       if (textoReconocido) {
         setTextoEscuchado(`"${textoReconocido}"`);
-        // Comparar con las opciones disponibles
         const indiceDetectado = encontrarMejorOpcion(textoReconocido, opciones);
         if (indiceDetectado !== -1) {
           setProcesando(false);
@@ -419,19 +440,12 @@ export default function LeccionScreen() {
     }
   };
 
-  // ── Reconocimiento nativo (Android SpeechRecognizer / iOS STT) ───────────
   const reconocerVozNativa = async (audioUri: string): Promise<string> => {
     return new Promise((resolve) => {
-      // Intento via fetch a la API de reconocimiento del dispositivo
-      // Android tiene SpeechRecognizer nativo que puede usarse
-      // iOS usa AVSpeechRecognizer
-      // Como estamos sin librería nativa instalada, resolvemos vacío
-      // y el usuario toca la opción manualmente
       setTimeout(() => resolve(''), 1500);
     });
   };
 
-  // ── Encontrar opción más parecida al texto reconocido ────────────────────
   const encontrarMejorOpcion = (texto: string, opciones: string[]): number => {
     const textoLimpio = texto.toLowerCase().trim();
     let mejorIndice = -1;
@@ -439,14 +453,11 @@ export default function LeccionScreen() {
 
     opciones.forEach((opcion, i) => {
       const opcionLimpia = opcion.toLowerCase().trim();
-      // Coincidencia exacta
       if (textoLimpio === opcionLimpia) { mejorIndice = i; mejorPuntaje = 100; return; }
-      // Coincidencia parcial: la opción está contenida en lo dicho o viceversa
       if (textoLimpio.includes(opcionLimpia) || opcionLimpia.includes(textoLimpio)) {
         const puntaje = (Math.min(textoLimpio.length, opcionLimpia.length) / Math.max(textoLimpio.length, opcionLimpia.length)) * 90;
         if (puntaje > mejorPuntaje) { mejorPuntaje = puntaje; mejorIndice = i; }
       }
-      // Coincidencia por palabras comunes
       const palabrasTexto  = textoLimpio.split(' ').filter(p => p.length > 2);
       const palabrasOpcion = opcionLimpia.split(' ').filter(p => p.length > 2);
       const comunes = palabrasTexto.filter(p => palabrasOpcion.includes(p));
@@ -459,7 +470,7 @@ export default function LeccionScreen() {
     return mejorPuntaje > 40 ? mejorIndice : -1;
   };
 
-  // ── Responder (tocando o por voz) ────────────────────────────────────────
+  // ── Responder ─────────────────────────────────────────────────────────────
   const responder = (index: number) => {
     if (seleccion !== null) return;
     setSeleccion(index);
@@ -468,20 +479,26 @@ export default function LeccionScreen() {
     if (esCorrecto) setPuntaje(prev => prev + 1);
 
     const textoFeedback = esCorrecto
-      ? `Excellent! That's correct! ${leccionActual.opciones[leccionActual.correcta]} is the right answer. Well done!`
-      : `Not quite. The correct answer is: ${leccionActual.opciones[leccionActual.correcta]}. Let's keep going!`;
+      ? `Great job! That's correct!`
+      : `Not quite. The correct answer is: ${leccionActual.opciones[leccionActual.correcta]}.`;
 
     setMensajeFeedback(textoFeedback);
-    hablarAvatar(textoFeedback);
 
-    // Avanzar automáticamente después de 3.5 segundos
-    setTimeout(() => {
-      if (paso + 1 >= lecciones.length) {
-        finalizarLeccion();
-      } else {
-        setPaso(prev => prev + 1);
-      }
-    }, 3500);
+    // Avanzar al siguiente paso SOLO cuando el avatar termine de hablar el feedback
+    alTerminarHablar.current = () => {
+      if (!montado.current) return;
+      hablandoRef.current = false;
+      setTimeout(() => {
+        if (!montado.current) return;
+        if (paso + 1 >= lecciones.length) {
+          finalizarLeccion();
+        } else {
+          setPaso(prev => prev + 1);
+        }
+      }, 600); // Pequeña pausa natural antes de la siguiente pregunta
+    };
+
+    hablarAvatar(textoFeedback);
   };
 
   const finalizarLeccion = async () => {
@@ -489,17 +506,9 @@ export default function LeccionScreen() {
     if (idTema !== null) {
       setGuardando(true);
       await completarTema(idTema, puntaje * 10);
-      setGuardando(false);
+      if (montado.current) setGuardando(false);
     }
   };
-
-  // Limpiar al salir
-  useEffect(() => {
-    return () => {
-      soundRef.current?.unloadAsync();
-      grabacion.current?.stopAndUnloadAsync();
-    };
-  }, []);
 
   // ── Pantalla de resultados ────────────────────────────────────────────────
   if (terminado) {
@@ -535,12 +544,16 @@ export default function LeccionScreen() {
           </View>
           {guardando && <Text style={styles.guardandoTexto}>Guardando progreso...</Text>}
           <TouchableOpacity style={styles.btnRepetir} onPress={() => {
+            hablandoRef.current = false;
             setPaso(0); setPuntaje(0); setTerminado(false);
             setSeleccion(null); setCorrecto(null);
           }}>
             <Text style={styles.btnRepetirTexto}>🔄  Repetir lección</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btnVolver} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.btnVolver} onPress={() => {
+            detenerTodoAudio();
+            router.back();
+          }}>
             <Text style={styles.btnVolverTexto}>← Volver a temas</Text>
           </TouchableOpacity>
         </View>
@@ -552,9 +565,11 @@ export default function LeccionScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => {
+          detenerTodoAudio();
+          router.back();
+        }} style={styles.backBtn}>
           <Text style={styles.backTexto}>✕</Text>
         </TouchableOpacity>
         <View style={styles.progressBarBg}>
@@ -565,14 +580,12 @@ export default function LeccionScreen() {
 
       <Text style={styles.temaTitulo}>{tituloTema}</Text>
 
-      {/* Avatar animado */}
       <AvatarHablando
         nombre={nombreAvatar}
         hablando={avatarHablando}
         escuchando={escuchando}
       />
 
-      {/* Pregunta / feedback de voz */}
       <View style={styles.burbujaWrap}>
         {seleccion === null ? (
           <>
@@ -589,7 +602,6 @@ export default function LeccionScreen() {
         )}
       </View>
 
-      {/* Opciones */}
       {seleccion === null && (
         <View style={styles.opcionesWrap}>
           <Text style={styles.instruccion}>Habla o toca una opción:</Text>
@@ -610,7 +622,6 @@ export default function LeccionScreen() {
         </View>
       )}
 
-      {/* Botón micrófono estilo WhatsApp */}
       {seleccion === null && (
         <View style={styles.micWrap}>
           <BotonMicrofono
@@ -703,13 +714,10 @@ function crearEstilos(colores: Tema) {
       color: colores.textoSecundario, fontSize: 12, fontWeight: '700',
     },
     opcionTexto: { color: colores.textoPrimario, fontSize: 15, flex: 1 },
-    micWrap: {
-      alignItems: 'center', gap: 8, paddingTop: 4,
-    },
+    micWrap: { alignItems: 'center', gap: 8, paddingTop: 4 },
     procesandoTexto: {
       color: colores.textoTerciario, fontSize: 12, fontStyle: 'italic',
     },
-    // Resultados
     resultContainer: {
       flex: 1, backgroundColor: colores.fondo,
       alignItems: 'center', justifyContent: 'center', padding: 24,
