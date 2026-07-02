@@ -97,6 +97,8 @@ const temasPorNivel = [
   },
 ];
 
+// ── Función para navegar al modo conversación ────────────────────────────────
+
 export default function TemasScreen() {
   const router = useRouter();
   const { nombre, emoji } = useLocalSearchParams();
@@ -243,6 +245,39 @@ export default function TemasScreen() {
             </TouchableOpacity>
           );
         })}
+
+        {/* Tema especial: Modo Conversación */}
+        <TouchableOpacity
+          style={[styles.cardConversacion, { borderColor: grupoActual.color }]}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({
+              pathname: '/conversacion',
+              params: {
+                nombre: tutorNombre,
+                emoji: tutorEmoji,
+                nivelIndex: nivelViendo.toString(),
+              },
+            })
+          }
+        >
+          <View style={[styles.temaIcono, { backgroundColor: grupoActual.bgColor }]}>
+            <Text style={styles.temaEmoji}>🎙️</Text>
+          </View>
+          <View style={styles.temaInfo}>
+            <Text style={[styles.temaTitulo, { color: grupoActual.color }]}>Conversación libre</Text>
+            <Text style={styles.temaDesc}>Practica hablando con el avatar en situaciones reales</Text>
+            <View style={styles.temaTags}>
+              <View style={[styles.tag, { backgroundColor: grupoActual.bgColor }]}>
+                <Text style={[styles.tagTexto, { color: grupoActual.color }]}>🎤 Solo voz</Text>
+              </View>
+              <View style={[styles.tag, { backgroundColor: grupoActual.bgColor }]}>
+                <Text style={[styles.tagTexto, { color: grupoActual.color }]}>15 turnos</Text>
+              </View>
+            </View>
+          </View>
+          <Text style={[styles.arrow, { color: grupoActual.color }]}>›</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -436,6 +471,18 @@ function crearEstilos(colores: Tema) {
     arrow: {
       fontSize: 20,
       color: colores.textoTerciario,
+    },
+    cardConversacion: {
+      backgroundColor: colores.fondoTarjeta,
+      borderRadius: 14,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      marginTop: 4,
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 2,
     },
   });
 }

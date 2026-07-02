@@ -13,6 +13,7 @@ export default function RootLayout() {
           <Stack.Screen name="nivel" options={{ headerShown: false }} />
           <Stack.Screen name="avatar" options={{ headerShown: false }} />
           <Stack.Screen name="leccion" options={{ headerShown: false }} />
+          <Stack.Screen name="conversacion" options={{ headerShown: false }} />
           <Stack.Screen name="notificaciones" options={{ headerShown: false }} />
           <Stack.Screen name="configuracion" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
