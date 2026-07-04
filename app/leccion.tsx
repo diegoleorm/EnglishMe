@@ -4,15 +4,11 @@ import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-spe
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+  Animated, Easing, ScrollView, StyleSheet,
+  Text, TouchableOpacity, View,
 } from 'react-native';
 import { obtenerLeccionesDeTema } from './contenido/lecciones';
+import { obtenerEjerciciosPorNivel, type EjercicioOrdenar, type EjercicioVerdaderoFalso, type EjercicioRelacionar } from './contenido/ejercicios';
 import { generarVozBase64 } from './lib/elevenlabs';
 import { useProgreso } from './theme/ProgresoContext';
 import { useTema } from './theme/ThemeContext';
@@ -30,7 +26,6 @@ const FRASES_CORRECTO = [
   "You're on fire! That's correct!", "Superb! That's the right answer!",
   "Impressive! Well done!", "That's it! You're getting better!", "Nice work! That's absolutely right!",
 ];
-
 const FRASES_INCORRECTO = [
   "Not quite. The correct answer is: ", "Almost! The right answer is: ",
   "Good try! It was: ", "Not this time. The answer is: ",
@@ -42,12 +37,8 @@ const FRASES_INCORRECTO = [
   "You'll remember next time! It was: ", "Keep it up! The right answer is: ",
 ];
 
-function fraseCorrecto(): string {
-  return FRASES_CORRECTO[Math.floor(Math.random() * FRASES_CORRECTO.length)];
-}
-function fraseIncorrecto(r: string): string {
-  return `${FRASES_INCORRECTO[Math.floor(Math.random() * FRASES_INCORRECTO.length)]}${r}.`;
-}
+function fraseCorrecto() { return FRASES_CORRECTO[Math.floor(Math.random() * FRASES_CORRECTO.length)]; }
+function fraseIncorrecto(r: string) { return `${FRASES_INCORRECTO[Math.floor(Math.random() * FRASES_INCORRECTO.length)]}${r}.`; }
 
 function mezclar<T>(arr: T[]): T[] {
   const c = [...arr];
@@ -58,6 +49,15 @@ function mezclar<T>(arr: T[]): T[] {
   return c;
 }
 
+// ── Tipos de pregunta unificados ──────────────────────────────────────────────
+type TipoPregunta = 'normal' | 'ordenar' | 'verdadero_falso' | 'relacionar';
+
+interface PreguntaUnificada {
+  tipo: TipoPregunta;
+  datos: any;
+}
+
+// ── Datos de avatar ───────────────────────────────────────────────────────────
 const DATOS_AVATAR: Record<string, { emoji: string; color: string; bg: string }> = {
   Michelle: { emoji: '👩',    color: '#DB2777', bg: '#FCE7F3' },
   Esteban:  { emoji: '👨',    color: '#1D4ED8', bg: '#DBEAFE' },
@@ -65,7 +65,6 @@ const DATOS_AVATAR: Record<string, { emoji: string; color: string; bg: string }>
   Charley:  { emoji: '👨‍💼', color: '#C2410C', bg: '#FFEDD5' },
 };
 
-// ── Avatar animado ────────────────────────────────────────────────────────────
 function AvatarHablando({ nombre, hablando, escuchando, onPress }: {
   nombre: string; hablando: boolean; escuchando: boolean; onPress: () => void;
 }) {
@@ -79,10 +78,7 @@ function AvatarHablando({ nombre, hablando, escuchando, onPress }: {
         Animated.timing(pulso, { toValue: 1.08, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         Animated.timing(pulso, { toValue: 0.96, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])).start();
-    } else {
-      pulso.stopAnimation();
-      Animated.timing(pulso, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    }
+    } else { pulso.stopAnimation(); Animated.timing(pulso, { toValue: 1, duration: 200, useNativeDriver: true }).start(); }
   }, [hablando]);
 
   useEffect(() => {
@@ -92,34 +88,29 @@ function AvatarHablando({ nombre, hablando, escuchando, onPress }: {
         Animated.timing(rotacion, { toValue: -1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         Animated.timing(rotacion, { toValue: 0,  duration: 300, useNativeDriver: true }),
       ])).start();
-    } else {
-      rotacion.stopAnimation();
-      Animated.timing(rotacion, { toValue: 0, duration: 200, useNativeDriver: true }).start();
-    }
+    } else { rotacion.stopAnimation(); Animated.timing(rotacion, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }
   }, [escuchando]);
 
   const rotate = rotacion.interpolate({ inputRange: [-1, 1], outputRange: ['-4deg', '4deg'] });
 
   return (
-    <TouchableOpacity style={eAvatar.contenedor} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={eAv.contenedor} onPress={onPress} activeOpacity={0.85}>
       {hablando && (
         <>
-          <Animated.View style={[eAvatar.anillo, { backgroundColor: datos.color + '20', transform: [{ scale: pulso }] }]} />
-          <Animated.View style={[eAvatar.anilloMedio, { backgroundColor: datos.color + '15', transform: [{ scale: pulso }] }]} />
+          <Animated.View style={[eAv.anillo, { backgroundColor: datos.color + '20', transform: [{ scale: pulso }] }]} />
+          <Animated.View style={[eAv.anilloMedio, { backgroundColor: datos.color + '15', transform: [{ scale: pulso }] }]} />
         </>
       )}
-      {escuchando && (
-        <Animated.View style={[eAvatar.anillo, { backgroundColor: '#22C55E20', transform: [{ scale: pulso }] }]} />
-      )}
+      {escuchando && <Animated.View style={[eAv.anillo, { backgroundColor: '#22C55E20', transform: [{ scale: pulso }] }]} />}
       <Animated.View style={[
-        eAvatar.circulo,
+        eAv.circulo,
         { backgroundColor: datos.bg, borderColor: hablando ? datos.color : escuchando ? '#22C55E' : datos.color + '40' },
         { transform: [{ scale: hablando ? pulso : 1 }, { rotate: escuchando ? rotate : '0deg' }] },
       ]}>
-        <Text style={eAvatar.emoji}>{datos.emoji}</Text>
+        <Text style={eAv.emoji}>{datos.emoji}</Text>
       </Animated.View>
-      <View style={[eAvatar.badge, { backgroundColor: hablando ? datos.color : escuchando ? '#22C55E' : '#64748B' }]}>
-        <Text style={eAvatar.badgeTexto}>
+      <View style={[eAv.badge, { backgroundColor: hablando ? datos.color : escuchando ? '#22C55E' : '#64748B' }]}>
+        <Text style={eAv.badgeTexto}>
           {hablando ? '🔊 Hablando' : escuchando ? '👂 Escuchando' : '🔁 Toca para repetir'}
         </Text>
       </View>
@@ -127,17 +118,16 @@ function AvatarHablando({ nombre, hablando, escuchando, onPress }: {
   );
 }
 
-const eAvatar = StyleSheet.create({
-  contenedor:  { height: 180, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+const eAv = StyleSheet.create({
+  contenedor:  { height: 170, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   anillo:      { position: 'absolute', width: 160, height: 160, borderRadius: 80 },
   anilloMedio: { position: 'absolute', width: 130, height: 130, borderRadius: 65 },
-  circulo:     { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
-  emoji:       { fontSize: 46 },
-  badge:       { position: 'absolute', bottom: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  circulo:     { width: 86, height: 86, borderRadius: 43, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
+  emoji:       { fontSize: 44 },
+  badge:       { position: 'absolute', bottom: 4, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeTexto:  { color: '#fff', fontSize: 11, fontWeight: '700' },
 });
 
-// ── Botón micrófono con tema ──────────────────────────────────────────────────
 function BotonMicrofono({ onIniciar, onTerminar, escuchando, disabled, colores }: {
   onIniciar: () => void; onTerminar: () => void; escuchando: boolean; disabled: boolean; colores: Tema;
 }) {
@@ -161,28 +151,281 @@ function BotonMicrofono({ onIniciar, onTerminar, escuchando, disabled, colores }
   );
 }
 
+// ── Componente Ordenar palabras ───────────────────────────────────────────────
+function EjercicioOrdenarComp({ ejercicio, colores, onRespuesta }: {
+  ejercicio: EjercicioOrdenar; colores: Tema; onRespuesta: (correcto: boolean) => void;
+}) {
+  const [palabrasDisponibles, setPalabrasDisponibles] = useState(() => mezclar(ejercicio.palabras));
+  const [seleccionadas, setSeleccionadas]             = useState<string[]>([]);
+  const [respondido, setRespondido]                   = useState(false);
+  const [esCorrecto, setEsCorrecto]                   = useState<boolean | null>(null);
+
+  const agregarPalabra = (palabra: string, index: number) => {
+    if (respondido) return;
+    setSeleccionadas(prev => [...prev, palabra]);
+    setPalabrasDisponibles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const quitarPalabra = (palabra: string, index: number) => {
+    if (respondido) return;
+    setPalabrasDisponibles(prev => [...prev, palabra]);
+    setSeleccionadas(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const verificar = () => {
+    const frase = seleccionadas.join(' ');
+    const correcto = frase.toLowerCase() === ejercicio.frase_correcta.toLowerCase();
+    setEsCorrecto(correcto);
+    setRespondido(true);
+    onRespuesta(correcto);
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={{ color: colores.textoTerciario, fontSize: 12, textAlign: 'center' }}>
+        📝 Ordena las palabras para formar la frase
+      </Text>
+      <Text style={{ color: colores.textoSecundario, fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
+        {ejercicio.espanol}
+      </Text>
+
+      {/* Zona de respuesta */}
+      <View style={{ minHeight: 50, backgroundColor: colores.fondoTarjeta, borderRadius: 12,
+        padding: 10, borderWidth: 1.5, borderColor: respondido
+          ? esCorrecto ? colores.exito : colores.error
+          : colores.borde, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {seleccionadas.length === 0
+          ? <Text style={{ color: colores.textoTerciario, fontSize: 12, alignSelf: 'center' }}>Toca las palabras en orden...</Text>
+          : seleccionadas.map((p, i) => (
+            <TouchableOpacity key={i} onPress={() => quitarPalabra(p, i)}
+              style={{ backgroundColor: colores.primario, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{p}</Text>
+            </TouchableOpacity>
+          ))
+        }
+      </View>
+
+      {respondido && (
+        <Text style={{ textAlign: 'center', fontSize: 13, fontWeight: '700',
+          color: esCorrecto ? colores.exito : colores.error }}>
+          {esCorrecto ? '✅ ¡Correcto!' : `❌ Era: "${ejercicio.frase_correcta}"`}
+        </Text>
+      )}
+
+      {/* Palabras disponibles */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+        {palabrasDisponibles.map((p, i) => (
+          <TouchableOpacity key={i} onPress={() => agregarPalabra(p, i)} disabled={respondido}
+            style={{ backgroundColor: colores.fondoSecundario, paddingHorizontal: 12, paddingVertical: 7,
+              borderRadius: 10, borderWidth: 1, borderColor: colores.borde, opacity: respondido ? 0.5 : 1 }}>
+            <Text style={{ color: colores.textoPrimario, fontSize: 13, fontWeight: '600' }}>{p}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {!respondido && seleccionadas.length > 0 && (
+        <TouchableOpacity onPress={verificar}
+          style={{ backgroundColor: colores.primario, borderRadius: 14, paddingVertical: 12, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓ Verificar</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+// ── Componente Verdadero o Falso ──────────────────────────────────────────────
+function EjercicioVFComp({ ejercicio, colores, onRespuesta }: {
+  ejercicio: EjercicioVerdaderoFalso; colores: Tema; onRespuesta: (correcto: boolean) => void;
+}) {
+  const [seleccion, setSeleccion] = useState<string | null>(null);
+
+  const responder = (valor: string) => {
+    if (seleccion) return;
+    setSeleccion(valor);
+    const correcto = valor === ejercicio.correcta;
+    onRespuesta(correcto);
+  };
+
+  const colorBoton = (valor: string) => {
+    if (!seleccion) return colores.fondoTarjeta;
+    if (valor === ejercicio.correcta) return colores.exitoFondo;
+    if (valor === seleccion) return colores.errorFondo;
+    return colores.fondoTarjeta;
+  };
+
+  const colorBorde = (valor: string) => {
+    if (!seleccion) return colores.borde;
+    if (valor === ejercicio.correcta) return colores.exito;
+    if (valor === seleccion) return colores.error;
+    return colores.borde;
+  };
+
+  return (
+    <View style={{ gap: 12 }}>
+      <Text style={{ color: colores.textoTerciario, fontSize: 12, textAlign: 'center' }}>
+        ✅❌ ¿Verdadero o Falso?
+      </Text>
+      <View style={{ backgroundColor: colores.fondoTarjeta, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colores.borde }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colores.textoPrimario, textAlign: 'center', marginBottom: 6 }}>
+          {ejercicio.ingles}
+        </Text>
+        <Text style={{ fontSize: 12, color: colores.textoTerciario, textAlign: 'center', fontStyle: 'italic' }}>
+          {ejercicio.espanol}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        {['True', 'False'].map(valor => (
+          <TouchableOpacity key={valor} onPress={() => responder(valor)} disabled={!!seleccion}
+            style={{ flex: 1, paddingVertical: 16, borderRadius: 14, alignItems: 'center',
+              backgroundColor: colorBoton(valor), borderWidth: 2, borderColor: colorBorde(valor) }}>
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>{valor === 'True' ? '✅' : '❌'}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: colores.textoPrimario }}>{valor}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {seleccion && (
+        <Text style={{ textAlign: 'center', fontSize: 13, fontWeight: '700',
+          color: seleccion === ejercicio.correcta ? colores.exito : colores.error }}>
+          {seleccion === ejercicio.correcta ? '✅ ¡Correcto!' : `❌ Era: ${ejercicio.correcta}`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+// ── Componente Relacionar ─────────────────────────────────────────────────────
+function EjercicioRelacionarComp({ ejercicio, colores, onRespuesta }: {
+  ejercicio: EjercicioRelacionar; colores: Tema; onRespuesta: (correcto: boolean) => void;
+}) {
+  // Usar hasta 6 pares mezclados
+  const paresUsados = ejercicio.pares.slice(0, 6);
+  const [inglesmezclado] = useState(() => mezclar(paresUsados.map(p => p.ingles)));
+  const [espanolMezclado] = useState(() => mezclar(paresUsados.map(p => p.espanol)));
+  const [selIngles, setSelIngles]   = useState<string | null>(null);
+  const [selEspanol, setSelEspanol] = useState<string | null>(null);
+  const [conectados, setConectados] = useState<{ ingles: string; espanol: string; correcto: boolean }[]>([]);
+  const [terminado, setTerminado]   = useState(false);
+
+  useEffect(() => {
+    if (selIngles && selEspanol) {
+      const par = paresUsados.find(p => p.ingles === selIngles);
+      const correcto = par?.espanol === selEspanol;
+      const nuevos = [...conectados, { ingles: selIngles, espanol: selEspanol, correcto }];
+      setConectados(nuevos);
+      setSelIngles(null);
+      setSelEspanol(null);
+      if (nuevos.length === paresUsados.length) {
+        setTerminado(true);
+        const todosCorrecto = nuevos.every(c => c.correcto);
+        onRespuesta(todosCorrecto);
+      }
+    }
+  }, [selIngles, selEspanol]);
+
+  const estaConectadoIngles = (w: string) => conectados.find(c => c.ingles === w);
+  const estaConectadoEspanol = (w: string) => conectados.find(c => c.espanol === w);
+
+  const colorTarjeta = (conectado: { correcto: boolean } | undefined, seleccionado: boolean) => {
+    if (conectado) return conectado.correcto ? colores.exitoFondo : colores.errorFondo;
+    if (seleccionado) return colores.primario + '30';
+    return colores.fondoTarjeta;
+  };
+
+  const colorBordeTarjeta = (conectado: { correcto: boolean } | undefined, seleccionado: boolean) => {
+    if (conectado) return conectado.correcto ? colores.exito : colores.error;
+    if (seleccionado) return colores.primario;
+    return colores.borde;
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={{ color: colores.textoTerciario, fontSize: 13, textAlign: 'center', fontWeight: '600' }}>
+        🔗 Relaciona cada palabra con su traducción
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1, gap: 6 }}>
+          {inglesmezclado.map((w, i) => {
+            const conectado = estaConectadoIngles(w);
+            const seleccionado = selIngles === w;
+            return (
+              <TouchableOpacity key={i} onPress={() => !conectado && !terminado && setSelIngles(seleccionado ? null : w)}
+                style={{ paddingVertical: 14, paddingHorizontal: 8, borderRadius: 12, alignItems: 'center',
+                  backgroundColor: colorTarjeta(conectado, seleccionado),
+                  borderWidth: 2, borderColor: colorBordeTarjeta(conectado, seleccionado) }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: colores.textoPrimario }}>{w}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <View style={{ flex: 1, gap: 6 }}>
+          {espanolMezclado.map((w, i) => {
+            const conectado = estaConectadoEspanol(w);
+            const seleccionado = selEspanol === w;
+            return (
+              <TouchableOpacity key={i} onPress={() => !conectado && !terminado && setSelEspanol(seleccionado ? null : w)}
+                style={{ paddingVertical: 14, paddingHorizontal: 8, borderRadius: 12, alignItems: 'center',
+                  backgroundColor: colorTarjeta(conectado, seleccionado),
+                  borderWidth: 2, borderColor: colorBordeTarjeta(conectado, seleccionado) }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: colores.textoPrimario }}>{w}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+      {selIngles && !selEspanol && (
+        <Text style={{ textAlign: 'center', fontSize: 13, color: colores.primario, fontWeight: '600' }}>
+          Ahora toca la traducción en español →
+        </Text>
+      )}
+    </View>
+  );
+}
+
 // ── Pantalla principal ────────────────────────────────────────────────────────
 export default function LeccionScreen() {
   const router = useRouter();
   const { colores } = useTema();
   const styles = crearEstilos(colores);
-  const { nombre, temaId, temaTitulo } = useLocalSearchParams();
+  const { nombre, temaId, temaTitulo, nivelIndex } = useLocalSearchParams();
   const { completarTema } = useProgreso();
 
   const nombreAvatar = nombre as string || 'Michelle';
   const tituloTema   = temaTitulo as string || 'Lección';
   const idTema       = temaId ? parseInt(temaId as string, 10) : null;
+  const nivelIdx     = nivelIndex ? parseInt(nivelIndex as string, 10) : 0;
   const todasLecciones = obtenerLeccionesDeTema(idTema ?? 0);
 
-  const [preguntasSeleccionadas] = useState(() => {
+  // Construir lista mixta de preguntas (normales + ejercicios nuevos)
+  const [preguntasSeleccionadas] = useState<PreguntaUnificada[]>(() => {
+    // Seleccionar 20 preguntas normales
     if (todasLecciones.length === 0) return [];
-    const resultado: typeof todasLecciones = [];
     let mezcladas = mezclar(todasLecciones);
-    while (resultado.length < TOTAL_PREGUNTAS) {
-      resultado.push(...mezcladas);
+    const normales: PreguntaUnificada[] = [];
+    while (normales.length < 20) {
+      normales.push(...mezcladas.map(d => ({ tipo: 'normal' as TipoPregunta, datos: d })));
       mezcladas = mezclar(todasLecciones);
     }
-    return resultado.slice(0, TOTAL_PREGUNTAS);
+    const normalesFinales = normales.slice(0, 20).map(p => {
+      // Mezclar opciones para que la correcta no siempre sea la primera
+      const indices = [0, 1, 2];
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      const opcionesMezcladas = indices.map((i: number) => p.datos.opciones[i]);
+      const nuevaCorrecta = indices.indexOf(p.datos.correcta);
+      return { ...p, datos: { ...p.datos, opciones: opcionesMezcladas, correcta: nuevaCorrecta } };
+    });
+
+    // Seleccionar 5 ejercicios de cada tipo nuevo (15 total)
+    const ejercicios = obtenerEjerciciosPorNivel(nivelIdx);
+    const ordenar    = mezclar(ejercicios.ordenar).slice(0, 5).map(d => ({ tipo: 'ordenar' as TipoPregunta, datos: d }));
+    const vf         = mezclar(ejercicios.verdaderoFalso).slice(0, 5).map(d => ({ tipo: 'verdadero_falso' as TipoPregunta, datos: d }));
+    const relacionar = mezclar(ejercicios.relacionar).slice(0, 5).map(d => ({ tipo: 'relacionar' as TipoPregunta, datos: d }));
+
+    // Mezclar todo: 20 normales + 15 ejercicios = 35, pero tomamos 30
+    const todos = mezclar([...normalesFinales, ...ordenar, ...vf, ...relacionar]);
+    return todos.slice(0, TOTAL_PREGUNTAS);
   });
 
   const totalGrupos = Math.ceil(preguntasSeleccionadas.length / PREGUNTAS_POR_GRUPO);
@@ -200,66 +443,91 @@ export default function LeccionScreen() {
   const [escuchando, setEscuchando]     = useState(false);
   const [textoEscuchado, setTextoEscuchado] = useState('');
   const [procesando, setProcesando]     = useState(false);
+  const [esperandoEjercicio, setEsperandoEjercicio] = useState(false);
 
   const alTerminarHablar = useRef<(() => void) | null>(null);
   const soundRef         = useRef<Audio.Sound | null>(null);
   const hablandoRef      = useRef(false);
   const montado          = useRef(true);
-  const textoPreguntaActual = useRef('');
   const yaRespondio      = useRef(false);
+  const pasoEnGrupoRef   = useRef(0);
+  const grupoRef         = useRef(0);
+
+  // Sincronizar refs con estado actual
+  pasoEnGrupoRef.current = pasoEnGrupo;
+  grupoRef.current = grupo;
 
   const indiceGlobal  = grupo * PREGUNTAS_POR_GRUPO + pasoEnGrupo;
-  const leccionActual = preguntasSeleccionadas[indiceGlobal];
+  const preguntaActual = preguntasSeleccionadas[indiceGlobal];
   const preguntasEnGrupoActual = Math.min(PREGUNTAS_POR_GRUPO, preguntasSeleccionadas.length - grupo * PREGUNTAS_POR_GRUPO);
   const progresoGrupo   = (pasoEnGrupo / preguntasEnGrupoActual) * 100;
   const porcentajeTotal = Math.round((indiceGlobal / preguntasSeleccionadas.length) * 100);
+  const esNormal = preguntaActual?.tipo === 'normal';
 
   useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
 
-  // ── Voz ───────────────────────────────────────────────────────────────────
   useSpeechRecognitionEvent('result', (event) => {
     if (!event.results || event.results.length === 0) return;
-    if (yaRespondio.current) return;
+    if (yaRespondio.current || !esNormal) return;
     const textoReconocido = event.results[0]?.transcript ?? '';
-    const indice = encontrarMejorOpcion(textoReconocido, leccionActual.opciones);
+    const indice = encontrarMejorOpcion(textoReconocido, preguntaActual.datos.opciones);
     if (indice !== -1) {
-      yaRespondio.current = true;
-      setProcesando(false); setTextoEscuchado('');
+      yaRespondio.current = true; setProcesando(false); setTextoEscuchado('');
       responder(indice);
     } else {
       setProcesando(false); setTextoEscuchado('');
-      const frases = ["Hmm, I didn't catch that. Try again!", "Sorry, could you repeat that?",
-        "Try once more, you can do it!", "Almost! Say it again please.", "I didn't quite get that. One more time!"];
+      const frases = ["Hmm, I didn't catch that. Try again!", "Sorry, could you repeat that?", "Try once more!"];
       hablarAvatar(frases[Math.floor(Math.random() * frases.length)]);
     }
   });
 
-  useSpeechRecognitionEvent('end', () => {
-    if (montado.current) { setEscuchando(false); setProcesando(false); }
-  });
-
+  useSpeechRecognitionEvent('end', () => { if (montado.current) { setEscuchando(false); setProcesando(false); } });
   useSpeechRecognitionEvent('error', () => {
     if (montado.current) {
       setEscuchando(false); setProcesando(false); setTextoEscuchado('');
-      const frases = ["I didn't hear you. Try again!", "Speak up! Try again.", "I'm listening! Once more."];
-      hablarAvatar(frases[Math.floor(Math.random() * frases.length)]);
+      hablarAvatar("I didn't hear you. Try again!");
     }
   });
 
+  // Texto que el avatar dice para cada tipo de ejercicio
+  const instruccionAvatar = () => {
+    if (!preguntaActual) return '';
+    switch (preguntaActual.tipo) {
+      case 'ordenar': return `Put these words in order: ${preguntaActual.datos.palabras.join(', ')}`;
+      case 'verdadero_falso': return `True or false? ${preguntaActual.datos.ingles}`;
+      case 'relacionar': return 'Match each word with its correct translation.';
+      default: {
+        // Eliminar contenido entre paréntesis antes de leer (ej: "(13)" → "")
+        const textoLimpio = preguntaActual.datos.ingles.replace(/\s*\(.*?\)/g, '').trim();
+        if (textoLimpio.includes('___')) {
+          const partes = textoLimpio.split('___');
+          const parte1 = partes[0].trim().replace(/,\s*$/, '');
+          const parte2 = (partes[1] || '').trim().replace(/^[,.]\s*/, '');
+          return parte1 + (parte2 ? ', blank, ' + parte2 : ', blank');
+        }
+        return textoLimpio;
+      }
+    }
+  };
+
   useEffect(() => {
-    if (!leccionActual || terminado || terminadoGrupo) return;
+    if (!preguntaActual || terminado || terminadoGrupo) return;
     if (hablandoRef.current) return;
     hablandoRef.current = true;
     yaRespondio.current = false;
     setSeleccion(null); setCorrecto(null); setTextoEscuchado(''); setMensajeFeedback('');
-    textoPreguntaActual.current = leccionActual.ingles;
-    const tieneBlanco = leccionActual.ingles.includes('___');
+    setEsperandoEjercicio(false);
     const timer = setTimeout(() => {
-      if (tieneBlanco) {
-        const partes = leccionActual.ingles.split('___');
-        hablarAvatarConPausa(partes[0].trim().replace(/,\s*$/, ''), (partes[1] || '').trim().replace(/^[,.]\s*/, ''));
+      if (!esNormal) {
+        hablarAvatar(instruccionAvatar());
       } else {
-        hablarAvatar(leccionActual.ingles);
+        const tieneBlanco = preguntaActual.datos.ingles.includes('___');
+        if (tieneBlanco) {
+          const partes = preguntaActual.datos.ingles.split('___');
+          hablarAvatarConPausa(partes[0].trim().replace(/,\s*$/, ''), (partes[1] || '').trim().replace(/^[,.]\s*/, ''));
+        } else {
+          hablarAvatar(preguntaActual.datos.ingles);
+        }
       }
     }, 400);
     return () => { clearTimeout(timer); hablandoRef.current = false; };
@@ -267,8 +535,7 @@ export default function LeccionScreen() {
 
   useEffect(() => {
     return () => {
-      Speech.stop();
-      ExpoSpeechRecognitionModule.stop();
+      Speech.stop(); ExpoSpeechRecognitionModule.stop();
       soundRef.current?.stopAsync().then(() => soundRef.current?.unloadAsync());
     };
   }, []);
@@ -282,24 +549,14 @@ export default function LeccionScreen() {
     if (montado.current) setAvatarHablando(false);
   };
 
-  const hablarAvatarConPausa = async (parte1: string, parte2: string) => {
+  const hablarAvatarConPausa = async (p1: string, p2: string) => {
     if (!montado.current) return;
     setAvatarHablando(true);
-    await new Promise<void>((resolve) => {
-      Speech.speak(parte1, { language: 'en-US', rate: 0.85, onDone: resolve, onStopped: resolve, onError: resolve });
-    });
+    await new Promise<void>(r => Speech.speak(p1, { language: 'en-US', rate: 0.85, onDone: r, onStopped: r, onError: r }));
     await new Promise(r => setTimeout(r, 600));
     if (!montado.current) { setAvatarHablando(false); return; }
-    if (parte2) {
-      await new Promise<void>((resolve) => {
-        Speech.speak(parte2, { language: 'en-US', rate: 0.85, onDone: resolve, onStopped: resolve, onError: resolve });
-      });
-    }
-    if (montado.current) {
-      setAvatarHablando(false);
-      alTerminarHablar.current?.();
-      alTerminarHablar.current = null;
-    }
+    if (p2) await new Promise<void>(r => Speech.speak(p2, { language: 'en-US', rate: 0.85, onDone: r, onStopped: r, onError: r }));
+    if (montado.current) { setAvatarHablando(false); alTerminarHablar.current?.(); alTerminarHablar.current = null; }
   };
 
   const hablarAvatar = async (texto: string) => {
@@ -307,74 +564,73 @@ export default function LeccionScreen() {
       await detenerTodoAudio();
       if (!montado.current) return;
       setAvatarHablando(true);
+
+      const onFinVoz = () => {
+        if (montado.current) {
+          setAvatarHablando(false);
+          alTerminarHablar.current?.();
+          alTerminarHablar.current = null;
+        }
+      };
+
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
       const base64 = await generarVozBase64(texto, nombreAvatar);
       if (!montado.current) return;
+
       if (!base64) {
-        setTimeout(() => {
-          if (montado.current) {
-            setAvatarHablando(false);
-            alTerminarHablar.current?.();
-            alTerminarHablar.current = null;
-          }
-        }, Math.max(texto.length * 55, 2000));
+        // Fallback: usar expo-speech con callback al terminar
+        Speech.speak(texto, {
+          language: 'en-US',
+          rate: 0.85,
+          onDone: onFinVoz,
+          onStopped: onFinVoz,
+          onError: onFinVoz,
+        });
         return;
       }
+
       const { sound } = await Audio.Sound.createAsync({ uri: `data:audio/mpeg;base64,${base64}` }, { shouldPlay: true });
       soundRef.current = sound;
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          if (montado.current) {
-            setAvatarHablando(false);
-            alTerminarHablar.current?.();
-            alTerminarHablar.current = null;
-          }
+      sound.setOnPlaybackStatusUpdate(s => {
+        if (s.isLoaded && s.didJustFinish) {
+          onFinVoz();
           sound.unloadAsync();
           soundRef.current = null;
         }
       });
-    } catch (e) {
-      if (montado.current) setAvatarHablando(false);
+    } catch {
+      if (montado.current) {
+        setAvatarHablando(false);
+        alTerminarHablar.current?.();
+        alTerminarHablar.current = null;
+      }
     }
   };
 
   const repetirPregunta = () => {
-    if (escuchando || procesando || seleccion !== null) return;
-    hablandoRef.current = false;
-    alTerminarHablar.current = null;
-    const tieneBlanco = leccionActual.ingles.includes('___');
+    if (!esNormal || escuchando || procesando || seleccion !== null) return;
+    hablandoRef.current = false; alTerminarHablar.current = null;
+    const tieneBlanco = preguntaActual.datos.ingles.includes('___');
     if (tieneBlanco) {
-      const partes = leccionActual.ingles.split('___');
+      const partes = preguntaActual.datos.ingles.split('___');
       hablarAvatarConPausa(partes[0].trim().replace(/,\s*$/, ''), (partes[1] || '').trim().replace(/^[,.]\s*/, ''));
-    } else {
-      hablarAvatar(leccionActual.ingles);
-    }
+    } else { hablarAvatar(preguntaActual.datos.ingles); }
   };
 
   const iniciarEscucha = async () => {
-    if (seleccion !== null || procesando || avatarHablando) return;
+    if (!esNormal || seleccion !== null || procesando || avatarHablando) return;
     try {
-      await detenerTodoAudio();
-      yaRespondio.current = false;
+      await detenerTodoAudio(); yaRespondio.current = false;
       const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       if (!granted) { setTextoEscuchado('Necesitas dar permiso al micrófono.'); return; }
-      setEscuchando(true);
-      setTextoEscuchado('🎤 Escuchando...');
+      setEscuchando(true); setTextoEscuchado('🎤 Escuchando...');
       ExpoSpeechRecognitionModule.start({ lang: 'en-US', interimResults: false, maxAlternatives: 1 });
-    } catch (e) {
-      setTextoEscuchado('Error al acceder al micrófono.');
-      setEscuchando(false);
-    }
+    } catch { setTextoEscuchado('Error al acceder al micrófono.'); setEscuchando(false); }
   };
 
-  const terminarEscucha = () => {
-    if (!escuchando) return;
-    setProcesando(true);
-    ExpoSpeechRecognitionModule.stop();
-  };
+  const terminarEscucha = () => { if (!escuchando) return; setProcesando(true); ExpoSpeechRecognitionModule.stop(); };
 
-  const limpiarTexto = (t: string) =>
-    t.toLowerCase().replace(/[.,!?;:'"¿¡]/g, '').replace(/\s+/g, ' ').trim();
+  const limpiarTexto = (t: string) => t.toLowerCase().replace(/[.,!?;:'"¿¡]/g, '').replace(/\s+/g, ' ').trim();
 
   const encontrarMejorOpcion = (texto: string, opciones: string[]): number => {
     const tl = limpiarTexto(texto);
@@ -382,107 +638,90 @@ export default function LeccionScreen() {
     opciones.forEach((op, i) => {
       const o = limpiarTexto(op);
       if (tl === o) { mejorI = i; mejorP = 100; return; }
-      if (tl.includes(o) || o.includes(tl)) {
-        const p = (Math.min(tl.length, o.length) / Math.max(tl.length, o.length)) * 95;
-        if (p > mejorP) { mejorP = p; mejorI = i; }
-      }
-      const pw = tl.split(' ').filter(x => x.length > 1);
-      const ow = o.split(' ').filter(x => x.length > 1);
+      if (tl.includes(o) || o.includes(tl)) { const p = (Math.min(tl.length, o.length) / Math.max(tl.length, o.length)) * 95; if (p > mejorP) { mejorP = p; mejorI = i; } }
+      const pw = tl.split(' ').filter(x => x.length > 1), ow = limpiarTexto(op).split(' ').filter(x => x.length > 1);
       const comunes = pw.filter(x => ow.includes(x));
-      if (comunes.length > 0 && ow.length > 0) {
-        const p = (comunes.length / ow.length) * 85;
-        if (p > mejorP) { mejorP = p; mejorI = i; }
-      }
+      if (comunes.length > 0 && ow.length > 0) { const p = (comunes.length / ow.length) * 85; if (p > mejorP) { mejorP = p; mejorI = i; } }
     });
-    opciones.forEach((op, i) => {
-      const o = limpiarTexto(op);
-      if (o.split(' ').length === 1 && tl.split(' ').includes(o)) {
-        if (90 > mejorP) { mejorP = 90; mejorI = i; }
-      }
-    });
-    const esCorta = opciones.every(o => limpiarTexto(o).split(' ').length <= 2);
-    return mejorP > (esCorta ? 15 : 30) ? mejorI : -1;
+    opciones.forEach((op, i) => { const o = limpiarTexto(op); if (o.split(' ').length === 1 && tl.split(' ').includes(o)) { if (90 > mejorP) { mejorP = 90; mejorI = i; } } });
+    return mejorP > (opciones.every(o => limpiarTexto(o).split(' ').length <= 2) ? 15 : 30) ? mejorI : -1;
+  };
+
+  const avanzar = (esCorrecto: boolean) => {
+    if (esCorrecto) { setPuntajeGrupo(p => p + 1); setPuntajeTotal(p => p + 1); }
+    hablandoRef.current = false;
+    const feedback = esCorrecto ? fraseCorrecto() : "Don't worry, keep going! You can do it!";
+    const pasoActual = pasoEnGrupoRef.current;
+    const pregActual = Math.min(PREGUNTAS_POR_GRUPO, preguntasSeleccionadas.length - grupoRef.current * PREGUNTAS_POR_GRUPO);
+    alTerminarHablar.current = () => {
+      if (!montado.current) return;
+      setTimeout(() => {
+        if (!montado.current) return;
+        if (pasoActual + 1 >= pregActual) {
+          setTerminadoGrupo(true);
+        } else {
+          setPasoEnGrupo(pasoActual + 1);
+          setSeleccion(null);
+          setCorrecto(null);
+        }
+      }, 400);
+    };
+    hablarAvatar(feedback);
   };
 
   const responder = (index: number) => {
     if (seleccion !== null) return;
     setSeleccion(index);
-    const esCorrecto = index === leccionActual.correcta;
+    const esCorrecto = index === preguntaActual.datos.correcta;
     setCorrecto(esCorrecto);
-    if (esCorrecto) { setPuntajeGrupo(p => p + 1); setPuntajeTotal(p => p + 1); }
-    const textoFeedback = esCorrecto ? fraseCorrecto() : fraseIncorrecto(leccionActual.opciones[leccionActual.correcta]);
+    const textoFeedback = esCorrecto ? fraseCorrecto() : fraseIncorrecto(preguntaActual.datos.opciones[preguntaActual.datos.correcta]);
     setMensajeFeedback(textoFeedback);
-    alTerminarHablar.current = () => {
-      if (!montado.current) return;
-      hablandoRef.current = false;
-      setTimeout(() => {
-        if (!montado.current) return;
-        if (pasoEnGrupo + 1 >= preguntasEnGrupoActual) {
-          setTerminadoGrupo(true);
-        } else {
-          setPasoEnGrupo(p => p + 1);
-          setSeleccion(null); setCorrecto(null);
-        }
-      }, 600);
-    };
+    alTerminarHablar.current = () => { if (montado.current) avanzar(esCorrecto); };
     hablarAvatar(textoFeedback);
   };
 
   const continuarSiguienteGrupo = () => {
     const sig = grupo + 1;
-    if (sig >= totalGrupos) {
-      finalizarLeccion();
-    } else {
-      setGrupo(sig); setPasoEnGrupo(0); setPuntajeGrupo(0);
-      setTerminadoGrupo(false); setSeleccion(null); setCorrecto(null);
-      hablandoRef.current = false;
-    }
+    if (sig >= totalGrupos) { finalizarLeccion(); }
+    else { setGrupo(sig); setPasoEnGrupo(0); setPuntajeGrupo(0); setTerminadoGrupo(false); setSeleccion(null); setCorrecto(null); hablandoRef.current = false; }
   };
 
   const finalizarLeccion = async () => {
     setTerminado(true);
-    if (idTema !== null) {
-      setGuardando(true);
-      await completarTema(idTema, puntajeTotal * 10);
-      if (montado.current) setGuardando(false);
+    if (idTema !== null) { setGuardando(true); await completarTema(idTema, puntajeTotal * 10); if (montado.current) setGuardando(false); }
+  };
+
+  // Icono por tipo de ejercicio
+  const iconoTipo = () => {
+    if (!preguntaActual) return '';
+    switch (preguntaActual.tipo) {
+      case 'ordenar': return '📝';
+      case 'verdadero_falso': return '✅❌';
+      case 'relacionar': return '🔗';
+      default: return '💬';
     }
   };
 
   // ── Pantalla entre grupos ─────────────────────────────────────────────────
   if (terminadoGrupo && !terminado) {
-    const sig = grupo + 1;
-    const esUltimo = sig >= totalGrupos;
+    const sig = grupo + 1; const esUltimo = sig >= totalGrupos;
     const pct = Math.round((puntajeGrupo / preguntasEnGrupoActual) * 100);
     return (
       <View style={styles.resultContainer}>
         <View style={styles.resultCard}>
           <Text style={styles.resultEmoji}>{pct === 100 ? '🏆' : pct >= 60 ? '🌟' : '💪'}</Text>
-          <Text style={styles.resultTitulo}>
-            {pct === 100 ? '¡Grupo perfecto!' : pct >= 60 ? '¡Bien hecho!' : '¡Sigue adelante!'}
-          </Text>
+          <Text style={styles.resultTitulo}>{pct === 100 ? '¡Grupo perfecto!' : pct >= 60 ? '¡Bien hecho!' : '¡Sigue adelante!'}</Text>
           <View style={styles.progresoTemaWrap}>
-            <View style={styles.progresoTemaBarBg}>
-              <View style={[styles.progresoTemaBarFill, { width: `${porcentajeTotal}%` }]} />
-            </View>
-            <Text style={styles.progresoTemaTexto}>
-              Grupo {grupo + 1} de {totalGrupos} completado — {porcentajeTotal}%
-            </Text>
+            <View style={styles.progresoTemaBarBg}><View style={[styles.progresoTemaBarFill, { width: `${porcentajeTotal}%` }]} /></View>
+            <Text style={styles.progresoTemaTexto}>Grupo {grupo + 1} de {totalGrupos} completado — {porcentajeTotal}%</Text>
           </View>
-          <View style={[styles.puntajeCirculo, {
-            borderColor: pct === 100 ? '#CA8A04' : pct >= 60 ? colores.primario : colores.error
-          }]}>
-            <Text style={[styles.puntajeNumero, {
-              color: pct === 100 ? '#CA8A04' : pct >= 60 ? colores.primario : colores.error
-            }]}>{pct}%</Text>
+          <View style={[styles.puntajeCirculo, { borderColor: pct === 100 ? '#CA8A04' : pct >= 60 ? colores.primario : colores.error }]}>
+            <Text style={[styles.puntajeNumero, { color: pct === 100 ? '#CA8A04' : pct >= 60 ? colores.primario : colores.error }]}>{pct}%</Text>
             <Text style={styles.puntajeLabel}>{puntajeGrupo}/{preguntasEnGrupoActual} correctas</Text>
           </View>
-          <Text style={styles.puntajeTotalTexto}>
-            Total acumulado: {puntajeTotal}/{indiceGlobal + 1} correctas
-          </Text>
+          <Text style={styles.puntajeTotalTexto}>Total acumulado: {puntajeTotal}/{indiceGlobal + 1} correctas</Text>
           <TouchableOpacity style={styles.btnRepetir} onPress={continuarSiguienteGrupo}>
-            <Text style={styles.btnRepetirTexto}>
-              {esUltimo ? '🏁 Ver resultado final' : `➡️  Siguiente grupo (${sig + 1}/${totalGrupos})`}
-            </Text>
+            <Text style={styles.btnRepetirTexto}>{esUltimo ? '🏁 Ver resultado final' : `➡️  Siguiente grupo (${sig + 1}/${totalGrupos})`}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnVolver} onPress={() => { detenerTodoAudio(); router.back(); }}>
             <Text style={styles.btnVolverTexto}>← Volver a temas</Text>
@@ -494,39 +733,23 @@ export default function LeccionScreen() {
 
   // ── Pantalla de resultados finales ────────────────────────────────────────
   if (terminado) {
-    const total = preguntasSeleccionadas.length;
-    const pct   = Math.round((puntajeTotal / total) * 100);
-    const esPerfecto = puntajeTotal === total;
-    const esBueno    = puntajeTotal >= total / 2;
+    const total = preguntasSeleccionadas.length; const pct = Math.round((puntajeTotal / total) * 100);
+    const esPerfecto = puntajeTotal === total; const esBueno = puntajeTotal >= total / 2;
     return (
       <View style={styles.resultContainer}>
         <View style={styles.resultCard}>
           <Text style={styles.resultEmoji}>{esPerfecto ? '🏆' : esBueno ? '🌟' : '💪'}</Text>
-          <Text style={styles.resultTitulo}>
-            {esPerfecto ? '¡Perfecto!' : esBueno ? '¡Muy bien!' : '¡Sigue practicando!'}
-          </Text>
-          <Text style={styles.resultMensaje}>
-            {esPerfecto ? 'Lo dominaste todo' : esBueno ? 'Vas muy bien, sigue así' : 'La práctica hace al maestro'}
-          </Text>
-          <View style={[styles.puntajeCirculo, {
-            borderColor: esPerfecto ? '#CA8A04' : esBueno ? colores.primario : colores.error
-          }]}>
-            <Text style={[styles.puntajeNumero, {
-              color: esPerfecto ? '#CA8A04' : esBueno ? colores.primario : colores.error
-            }]}>{pct}%</Text>
+          <Text style={styles.resultTitulo}>{esPerfecto ? '¡Perfecto!' : esBueno ? '¡Muy bien!' : '¡Sigue practicando!'}</Text>
+          <Text style={styles.resultMensaje}>{esPerfecto ? 'Lo dominaste todo' : esBueno ? 'Vas muy bien, sigue así' : 'La práctica hace al maestro'}</Text>
+          <View style={[styles.puntajeCirculo, { borderColor: esPerfecto ? '#CA8A04' : esBueno ? colores.primario : colores.error }]}>
+            <Text style={[styles.puntajeNumero, { color: esPerfecto ? '#CA8A04' : esBueno ? colores.primario : colores.error }]}>{pct}%</Text>
             <Text style={styles.puntajeLabel}>{puntajeTotal}/{total} correctas</Text>
           </View>
           <View style={styles.estrellas}>
-            {[1, 2, 3].map(i => (
-              <Text key={i} style={[styles.estrella, {
-                opacity: puntajeTotal >= Math.ceil((total / 3) * i) ? 1 : 0.2
-              }]}>⭐</Text>
-            ))}
+            {[1, 2, 3].map(i => (<Text key={i} style={[styles.estrella, { opacity: puntajeTotal >= Math.ceil((total / 3) * i) ? 1 : 0.2 }]}>⭐</Text>))}
           </View>
           {guardando && <Text style={styles.guardandoTexto}>Guardando progreso...</Text>}
-          <TouchableOpacity style={styles.btnRepetir} onPress={() => {
-            router.replace({ pathname: '/leccion', params: { nombre: nombreAvatar, temaId: temaId as string, temaTitulo: tituloTema } });
-          }}>
+          <TouchableOpacity style={styles.btnRepetir} onPress={() => router.replace({ pathname: '/leccion', params: { nombre: nombreAvatar, temaId: temaId as string, temaTitulo: tituloTema, nivelIndex: nivelIndex as string } })}>
             <Text style={styles.btnRepetirTexto}>🔄  Repetir con nuevas preguntas</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnVolver} onPress={() => { detenerTodoAudio(); router.back(); }}>
@@ -537,6 +760,8 @@ export default function LeccionScreen() {
     );
   }
 
+  if (!preguntaActual) return <View style={styles.container} />;
+
   // ── Pantalla de lección ───────────────────────────────────────────────────
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
@@ -544,77 +769,77 @@ export default function LeccionScreen() {
         <TouchableOpacity onPress={() => { detenerTodoAudio(); ExpoSpeechRecognitionModule.stop(); router.back(); }} style={styles.backBtn}>
           <Text style={styles.backTexto}>✕</Text>
         </TouchableOpacity>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${progresoGrupo}%` }]} />
-        </View>
+        <View style={styles.progressBarBg}><View style={[styles.progressBarFill, { width: `${progresoGrupo}%` }]} /></View>
         <Text style={styles.progressLabel}>{pasoEnGrupo + 1}/{preguntasEnGrupoActual}</Text>
       </View>
 
       <View style={styles.grupoInfo}>
         <Text style={styles.temaTitulo}>{tituloTema}</Text>
         <View style={styles.grupoPill}>
-          <Text style={styles.grupoTexto}>Grupo {grupo + 1}/{totalGrupos} · {porcentajeTotal}% completado</Text>
+          <Text style={styles.grupoTexto}>{iconoTipo()} Grupo {grupo + 1}/{totalGrupos} · {porcentajeTotal}%</Text>
         </View>
       </View>
 
-      <AvatarHablando
-        nombre={nombreAvatar}
-        hablando={avatarHablando}
-        escuchando={escuchando}
-        onPress={repetirPregunta}
-      />
+      {/* Avatar para todos los tipos */}
+      <AvatarHablando nombre={nombreAvatar} hablando={avatarHablando} escuchando={escuchando} onPress={repetirPregunta} />
 
-      <View style={styles.burbujaWrap}>
-        {seleccion === null ? (
-          <>
-            <Text style={styles.burbujaIngles}>{leccionActual.ingles}</Text>
-            <Text style={styles.burbujaEspanol}>{leccionActual.espanol}</Text>
-            {textoEscuchado !== '' && <Text style={styles.textoEscuchado}>{textoEscuchado}</Text>}
-          </>
-        ) : (
-          <Text style={[styles.feedbackTexto, { color: correcto ? colores.exito : colores.error }]}>
-            {correcto ? '✅ ' : '❌ '}{mensajeFeedback}
-          </Text>
-        )}
-      </View>
-
-      {seleccion === null && (
-        <View style={styles.opcionesWrap}>
-          <Text style={styles.instruccion}>Habla o toca una opción:</Text>
-          {leccionActual.opciones.map((opcion, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.opcion}
-              onPress={() => responder(index)}
-              activeOpacity={0.85}
-              disabled={procesando || escuchando}
-            >
-              <View style={styles.opcionLetra}>
-                <Text style={styles.opcionLetraTexto}>{['A', 'B', 'C'][index]}</Text>
-              </View>
-              <Text style={styles.opcionTexto}>{opcion}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {seleccion === null && (
-        <View style={styles.micWrap}>
-          <BotonMicrofono
-            onIniciar={iniciarEscucha}
-            onTerminar={terminarEscucha}
-            escuchando={escuchando}
-            disabled={procesando || avatarHablando}
-            colores={colores}
-          />
-          {procesando && <Text style={styles.procesandoTexto}>Analizando tu respuesta...</Text>}
+      {/* Contenido según tipo */}
+      {esNormal ? (
+        <>
+          <View style={styles.burbujaWrap}>
+            {seleccion === null ? (
+              <>
+                <Text style={styles.burbujaIngles}>{preguntaActual.datos.ingles}</Text>
+                <Text style={styles.burbujaEspanol}>{preguntaActual.datos.espanol}</Text>
+                {textoEscuchado !== '' && <Text style={styles.textoEscuchado}>{textoEscuchado}</Text>}
+              </>
+            ) : (
+              <Text style={[styles.feedbackTexto, { color: correcto ? colores.exito : colores.error }]}>
+                {correcto ? '✅ ' : '❌ '}{mensajeFeedback}
+              </Text>
+            )}
+          </View>
+          {seleccion === null && (
+            <View style={styles.opcionesWrap}>
+              <Text style={styles.instruccion}>Habla o toca una opción:</Text>
+              {preguntaActual.datos.opciones.map((opcion: string, index: number) => (
+                <TouchableOpacity key={index} style={styles.opcion} onPress={() => responder(index)}
+                  activeOpacity={0.85} disabled={procesando || escuchando}>
+                  <View style={styles.opcionLetra}><Text style={styles.opcionLetraTexto}>{['A', 'B', 'C'][index]}</Text></View>
+                  <Text style={styles.opcionTexto}>{opcion}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {seleccion === null && (
+            <View style={styles.micWrap}>
+              <BotonMicrofono onIniciar={iniciarEscucha} onTerminar={terminarEscucha}
+                escuchando={escuchando} disabled={procesando || avatarHablando} colores={colores} />
+              {procesando && <Text style={styles.procesandoTexto}>Analizando tu respuesta...</Text>}
+            </View>
+          )}
+        </>
+      ) : (
+        /* Ejercicios nuevos */
+        <View style={styles.burbujaWrap}>
+          {preguntaActual.tipo === 'ordenar' && (
+            <EjercicioOrdenarComp ejercicio={preguntaActual.datos} colores={colores}
+              onRespuesta={(ok) => avanzar(ok)} />
+          )}
+          {preguntaActual.tipo === 'verdadero_falso' && (
+            <EjercicioVFComp ejercicio={preguntaActual.datos} colores={colores}
+              onRespuesta={(ok) => avanzar(ok)} />
+          )}
+          {preguntaActual.tipo === 'relacionar' && (
+            <EjercicioRelacionarComp ejercicio={preguntaActual.datos} colores={colores}
+              onRespuesta={(ok) => avanzar(ok)} />
+          )}
         </View>
       )}
     </ScrollView>
   );
 }
 
-// ── Estilos ───────────────────────────────────────────────────────────────────
 function crearEstilos(colores: Tema) {
   return StyleSheet.create({
     container:           { flex: 1, backgroundColor: colores.fondo },

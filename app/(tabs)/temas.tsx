@@ -218,6 +218,7 @@ export default function TemasScreen() {
                     emoji: tutorEmoji,
                     temaId: tema.id.toString(),
                     temaTitulo: tema.titulo,
+                    nivelIndex: nivelViendo.toString(),
                   },
                 })
               }
