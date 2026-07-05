@@ -36,9 +36,17 @@ const FRASES_INCORRECTO = [
   "Learning takes practice! The answer is: ", "That's okay! The correct answer is: ",
   "You'll remember next time! It was: ", "Keep it up! The right answer is: ",
 ];
+const FRASES_INCORRECTO_EJERCICIO = [
+  "Not quite, but don't worry. Check the correct answer!",
+  "Almost! Take a look at the right answer.",
+  "Good try! Check the correct answer on screen.",
+  "That's okay, learning takes practice. Look at the answer!",
+  "Not this time. See the correct answer above.",
+];
 
 function fraseCorrecto() { return FRASES_CORRECTO[Math.floor(Math.random() * FRASES_CORRECTO.length)]; }
 function fraseIncorrecto(r: string) { return `${FRASES_INCORRECTO[Math.floor(Math.random() * FRASES_INCORRECTO.length)]}${r}.`; }
+function fraseIncorrectoEjercicio() { return FRASES_INCORRECTO_EJERCICIO[Math.floor(Math.random() * FRASES_INCORRECTO_EJERCICIO.length)]; }
 
 function mezclar<T>(arr: T[]): T[] {
   const c = [...arr];
@@ -152,13 +160,16 @@ function BotonMicrofono({ onIniciar, onTerminar, escuchando, disabled, colores }
 }
 
 // ── Componente Ordenar palabras ───────────────────────────────────────────────
+// Recibe las palabras YA mezcladas (palabrasMezcladas) desde el componente
+// padre, para que sea EXACTAMENTE el mismo orden que el avatar narra en voz alta.
 function EjercicioOrdenarComp({ ejercicio, colores, onRespuesta }: {
-  ejercicio: EjercicioOrdenar; colores: Tema; onRespuesta: (correcto: boolean) => void;
+  ejercicio: EjercicioOrdenar & { palabrasMezcladas: string[] }; colores: Tema; onRespuesta: (correcto: boolean) => void;
 }) {
-  const [palabrasDisponibles, setPalabrasDisponibles] = useState(() => mezclar(ejercicio.palabras));
+  const [palabrasDisponibles, setPalabrasDisponibles] = useState<string[]>(() => [...ejercicio.palabrasMezcladas]);
   const [seleccionadas, setSeleccionadas]             = useState<string[]>([]);
   const [respondido, setRespondido]                   = useState(false);
   const [esCorrecto, setEsCorrecto]                   = useState<boolean | null>(null);
+  const yaVerificadoRef = useRef(false);
 
   const agregarPalabra = (palabra: string, index: number) => {
     if (respondido) return;
@@ -173,6 +184,8 @@ function EjercicioOrdenarComp({ ejercicio, colores, onRespuesta }: {
   };
 
   const verificar = () => {
+    if (yaVerificadoRef.current) return;
+    yaVerificadoRef.current = true;
     const frase = seleccionadas.join(' ');
     const correcto = frase.toLowerCase() === ejercicio.frase_correcta.toLowerCase();
     setEsCorrecto(correcto);
@@ -238,9 +251,11 @@ function EjercicioVFComp({ ejercicio, colores, onRespuesta }: {
   ejercicio: EjercicioVerdaderoFalso; colores: Tema; onRespuesta: (correcto: boolean) => void;
 }) {
   const [seleccion, setSeleccion] = useState<string | null>(null);
+  const yaRespondioRef = useRef(false);
 
   const responder = (valor: string) => {
-    if (seleccion) return;
+    if (yaRespondioRef.current) return;
+    yaRespondioRef.current = true;
     setSeleccion(valor);
     const correcto = valor === ejercicio.correcta;
     onRespuesta(correcto);
@@ -305,6 +320,7 @@ function EjercicioRelacionarComp({ ejercicio, colores, onRespuesta }: {
   const [selEspanol, setSelEspanol] = useState<string | null>(null);
   const [conectados, setConectados] = useState<{ ingles: string; espanol: string; correcto: boolean }[]>([]);
   const [terminado, setTerminado]   = useState(false);
+  const yaNotificadoRef = useRef(false);
 
   useEffect(() => {
     if (selIngles && selEspanol) {
@@ -314,7 +330,8 @@ function EjercicioRelacionarComp({ ejercicio, colores, onRespuesta }: {
       setConectados(nuevos);
       setSelIngles(null);
       setSelEspanol(null);
-      if (nuevos.length === paresUsados.length) {
+      if (nuevos.length === paresUsados.length && !yaNotificadoRef.current) {
+        yaNotificadoRef.current = true;
         setTerminado(true);
         const todosCorrecto = nuevos.every(c => c.correcto);
         onRespuesta(todosCorrecto);
@@ -419,7 +436,13 @@ export default function LeccionScreen() {
 
     // Seleccionar 5 ejercicios de cada tipo nuevo (15 total)
     const ejercicios = obtenerEjerciciosPorNivel(nivelIdx);
-    const ordenar    = mezclar(ejercicios.ordenar).slice(0, 5).map(d => ({ tipo: 'ordenar' as TipoPregunta, datos: d }));
+    // Para "ordenar": se mezcla UNA sola vez aquí y se guarda en
+    // `palabrasMezcladas`, para que el avatar y la pantalla usen exactamente
+    // el mismo orden (antes se mezclaban por separado y no coincidían).
+    const ordenar = mezclar(ejercicios.ordenar).slice(0, 5).map(d => ({
+      tipo: 'ordenar' as TipoPregunta,
+      datos: { ...d, palabrasMezcladas: mezclar(d.palabras) },
+    }));
     const vf         = mezclar(ejercicios.verdaderoFalso).slice(0, 5).map(d => ({ tipo: 'verdadero_falso' as TipoPregunta, datos: d }));
     const relacionar = mezclar(ejercicios.relacionar).slice(0, 5).map(d => ({ tipo: 'relacionar' as TipoPregunta, datos: d }));
 
@@ -452,6 +475,19 @@ export default function LeccionScreen() {
   const yaRespondio      = useRef(false);
   const pasoEnGrupoRef   = useRef(0);
   const grupoRef         = useRef(0);
+  // Token que identifica la "voz" activa en cada momento.
+  // Cada vez que se inicia un nuevo audio, se incrementa. Cualquier callback
+  // de un audio anterior que llegue tarde revisa este token y, si no coincide,
+  // se ignora. Esto evita que se solapen o repitan frases.
+  const tokenAudio       = useRef(0);
+  // Guarda la última frase (o combinación p1+p2) que se empezó a narrar y
+  // cuándo, para ignorar un segundo intento de decir EXACTAMENTE lo mismo
+  // en menos de 2 segundos (evita que la pregunta se repita dos veces).
+  const ultimaFraseRef     = useRef<string>('');
+  const horaUltimaFraseRef = useRef<number>(0);
+  // Evita que se procese un feedback (correcto/incorrecto) dos veces si,
+  // por un doble toque, se llega a llamar dos veces casi al mismo tiempo.
+  const feedbackEnCursoRef = useRef(false);
 
   // Sincronizar refs con estado actual
   pasoEnGrupoRef.current = pasoEnGrupo;
@@ -493,7 +529,8 @@ export default function LeccionScreen() {
   const instruccionAvatar = () => {
     if (!preguntaActual) return '';
     switch (preguntaActual.tipo) {
-      case 'ordenar': return `Put these words in order: ${preguntaActual.datos.palabras.join(', ')}`;
+      // Usa palabrasMezcladas (el MISMO orden que ve el usuario en pantalla)
+      case 'ordenar': return `Put these words in order: ${preguntaActual.datos.palabrasMezcladas.join(', ')}`;
       case 'verdadero_falso': return `True or false? ${preguntaActual.datos.ingles}`;
       case 'relacionar': return 'Match each word with its correct translation.';
       default: {
@@ -515,6 +552,8 @@ export default function LeccionScreen() {
     if (hablandoRef.current) return;
     hablandoRef.current = true;
     yaRespondio.current = false;
+    feedbackEnCursoRef.current = false;
+    respondioNormalRef.current = false;
     setSeleccion(null); setCorrecto(null); setTextoEscuchado(''); setMensajeFeedback('');
     setEsperandoEjercicio(false);
     const timer = setTimeout(() => {
@@ -535,12 +574,17 @@ export default function LeccionScreen() {
 
   useEffect(() => {
     return () => {
+      tokenAudio.current++;
       Speech.stop(); ExpoSpeechRecognitionModule.stop();
       soundRef.current?.stopAsync().then(() => soundRef.current?.unloadAsync());
     };
   }, []);
 
+  // Detiene cualquier audio en curso (voz nativa o mp3 de ElevenLabs) e
+  // invalida el token de cualquier voz anterior para que sus callbacks
+  // tardíos no disparen nada.
   const detenerTodoAudio = async () => {
+    tokenAudio.current++;
     Speech.stop();
     if (soundRef.current) {
       try { await soundRef.current.stopAsync(); await soundRef.current.unloadAsync(); } catch (_) {}
@@ -550,32 +594,48 @@ export default function LeccionScreen() {
   };
 
   const hablarAvatarConPausa = async (p1: string, p2: string) => {
+    const clave = `${p1}|||${p2}`;
+    const ahora = Date.now();
+    if (clave === ultimaFraseRef.current && ahora - horaUltimaFraseRef.current < 2000) return;
+    ultimaFraseRef.current = clave;
+    horaUltimaFraseRef.current = ahora;
+    await detenerTodoAudio();
     if (!montado.current) return;
+    const miToken = tokenAudio.current;
     setAvatarHablando(true);
-    await new Promise<void>(r => Speech.speak(p1, { language: 'en-US', rate: 0.85, onDone: r, onStopped: r, onError: r }));
+    await new Promise<void>(r => Speech.speak(p1, { language: 'en-US', rate: 0.85, onDone: () => r(), onStopped: () => r(), onError: () => r() }));
+    if (!montado.current || tokenAudio.current !== miToken) return;
     await new Promise(r => setTimeout(r, 600));
-    if (!montado.current) { setAvatarHablando(false); return; }
-    if (p2) await new Promise<void>(r => Speech.speak(p2, { language: 'en-US', rate: 0.85, onDone: r, onStopped: r, onError: r }));
-    if (montado.current) { setAvatarHablando(false); alTerminarHablar.current?.(); alTerminarHablar.current = null; }
+    if (!montado.current || tokenAudio.current !== miToken) { if (montado.current) setAvatarHablando(false); return; }
+    if (p2) await new Promise<void>(r => Speech.speak(p2, { language: 'en-US', rate: 0.85, onDone: () => r(), onStopped: () => r(), onError: () => r() }));
+    if (montado.current && tokenAudio.current === miToken) {
+      setAvatarHablando(false);
+      alTerminarHablar.current?.();
+      alTerminarHablar.current = null;
+    }
   };
 
   const hablarAvatar = async (texto: string) => {
+    const ahora = Date.now();
+    if (texto === ultimaFraseRef.current && ahora - horaUltimaFraseRef.current < 2000) return;
+    ultimaFraseRef.current = texto;
+    horaUltimaFraseRef.current = ahora;
     try {
       await detenerTodoAudio();
       if (!montado.current) return;
+      const miToken = tokenAudio.current;
       setAvatarHablando(true);
 
       const onFinVoz = () => {
-        if (montado.current) {
-          setAvatarHablando(false);
-          alTerminarHablar.current?.();
-          alTerminarHablar.current = null;
-        }
+        if (!montado.current || tokenAudio.current !== miToken) return;
+        setAvatarHablando(false);
+        alTerminarHablar.current?.();
+        alTerminarHablar.current = null;
       };
 
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
       const base64 = await generarVozBase64(texto, nombreAvatar);
-      if (!montado.current) return;
+      if (!montado.current || tokenAudio.current !== miToken) return;
 
       if (!base64) {
         // Fallback: usar expo-speech con callback al terminar
@@ -590,12 +650,13 @@ export default function LeccionScreen() {
       }
 
       const { sound } = await Audio.Sound.createAsync({ uri: `data:audio/mpeg;base64,${base64}` }, { shouldPlay: true });
+      if (tokenAudio.current !== miToken) { sound.unloadAsync(); return; }
       soundRef.current = sound;
       sound.setOnPlaybackStatusUpdate(s => {
         if (s.isLoaded && s.didJustFinish) {
           onFinVoz();
           sound.unloadAsync();
-          soundRef.current = null;
+          if (soundRef.current === sound) soundRef.current = null;
         }
       });
     } catch {
@@ -647,37 +708,86 @@ export default function LeccionScreen() {
     return mejorP > (opciones.every(o => limpiarTexto(o).split(' ').length <= 2) ? 15 : 30) ? mejorI : -1;
   };
 
-  const avanzar = (esCorrecto: boolean) => {
+  const avanzar = (esCorrecto: boolean, delayMs: number = 1500) => {
     if (esCorrecto) { setPuntajeGrupo(p => p + 1); setPuntajeTotal(p => p + 1); }
     hablandoRef.current = false;
-    const feedback = esCorrecto ? fraseCorrecto() : "Don't worry, keep going! You can do it!";
     const pasoActual = pasoEnGrupoRef.current;
     const pregActual = Math.min(PREGUNTAS_POR_GRUPO, preguntasSeleccionadas.length - grupoRef.current * PREGUNTAS_POR_GRUPO);
-    alTerminarHablar.current = () => {
+    setTimeout(() => {
       if (!montado.current) return;
-      setTimeout(() => {
-        if (!montado.current) return;
-        if (pasoActual + 1 >= pregActual) {
-          setTerminadoGrupo(true);
-        } else {
-          setPasoEnGrupo(pasoActual + 1);
-          setSeleccion(null);
-          setCorrecto(null);
-        }
-      }, 400);
-    };
-    hablarAvatar(feedback);
+      if (pasoActual + 1 >= pregActual) {
+        setTerminadoGrupo(true);
+      } else {
+        setPasoEnGrupo(pasoActual + 1);
+        setSeleccion(null);
+        setCorrecto(null);
+      }
+    }, delayMs);
   };
 
+  // Función central de feedback: dice la frase en voz alta y SOLO avanza
+  // cuando se cumplen dos condiciones: (1) la voz terminó de verdad, y
+  // (2) pasó un tiempo mínimo de lectura (más largo si hay que leer la
+  // respuesta correcta). Así nunca se corta antes de tiempo ni se solapa
+  // con la siguiente narración.
+  const hablarFeedbackYAvanzar = (esCorrecto: boolean, textoFeedback: string) => {
+    if (feedbackEnCursoRef.current) return; // ya se está procesando un feedback, ignorar el duplicado
+    feedbackEnCursoRef.current = true;
+    tokenAudio.current++;
+    const miToken = tokenAudio.current;
+    Speech.stop();
+    if (soundRef.current) {
+      soundRef.current.stopAsync().catch(() => {});
+      soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    }
+    setAvatarHablando(true);
+
+    const tiempoMinimoMs = esCorrecto ? 1800 : 3200;
+
+    let vozLista = false;
+    let tiempoListo = false;
+    let yaAvanzo = false;
+
+    const intentarAvanzar = () => {
+      if (yaAvanzo || tokenAudio.current !== miToken) return;
+      if (!vozLista || !tiempoListo) return;
+      yaAvanzo = true;
+      feedbackEnCursoRef.current = false;
+      if (montado.current) setAvatarHablando(false);
+      avanzar(esCorrecto, 200);
+    };
+
+    Speech.speak(textoFeedback, {
+      language: 'en-US',
+      rate: 0.85,
+      onDone: () => { vozLista = true; intentarAvanzar(); },
+      onStopped: () => { vozLista = true; intentarAvanzar(); },
+      onError: () => { vozLista = true; intentarAvanzar(); },
+    });
+    // Respaldo por si el callback de voz nunca llega en algún dispositivo
+    setTimeout(() => { vozLista = true; intentarAvanzar(); }, 5000);
+    // Tiempo mínimo garantizado para poder leer el feedback en pantalla
+    setTimeout(() => { tiempoListo = true; intentarAvanzar(); }, tiempoMinimoMs);
+  };
+
+  const respondioNormalRef = useRef(false);
   const responder = (index: number) => {
-    if (seleccion !== null) return;
+    if (respondioNormalRef.current || seleccion !== null) return;
+    respondioNormalRef.current = true;
     setSeleccion(index);
     const esCorrecto = index === preguntaActual.datos.correcta;
     setCorrecto(esCorrecto);
     const textoFeedback = esCorrecto ? fraseCorrecto() : fraseIncorrecto(preguntaActual.datos.opciones[preguntaActual.datos.correcta]);
     setMensajeFeedback(textoFeedback);
-    alTerminarHablar.current = () => { if (montado.current) avanzar(esCorrecto); };
-    hablarAvatar(textoFeedback);
+    hablarFeedbackYAvanzar(esCorrecto, textoFeedback);
+  };
+
+  // Usado por los ejercicios de ordenar / verdadero-falso / relacionar,
+  // que antes avanzaban en silencio sin que Milo dijera nada.
+  const manejarRespuestaEjercicio = (esCorrecto: boolean) => {
+    const textoFeedback = esCorrecto ? fraseCorrecto() : fraseIncorrectoEjercicio();
+    hablarFeedbackYAvanzar(esCorrecto, textoFeedback);
   };
 
   const continuarSiguienteGrupo = () => {
@@ -823,16 +933,16 @@ export default function LeccionScreen() {
         /* Ejercicios nuevos */
         <View style={styles.burbujaWrap}>
           {preguntaActual.tipo === 'ordenar' && (
-            <EjercicioOrdenarComp ejercicio={preguntaActual.datos} colores={colores}
-              onRespuesta={(ok) => avanzar(ok)} />
+            <EjercicioOrdenarComp key={indiceGlobal} ejercicio={preguntaActual.datos} colores={colores}
+              onRespuesta={(ok) => manejarRespuestaEjercicio(ok)} />
           )}
           {preguntaActual.tipo === 'verdadero_falso' && (
-            <EjercicioVFComp ejercicio={preguntaActual.datos} colores={colores}
-              onRespuesta={(ok) => avanzar(ok)} />
+            <EjercicioVFComp key={indiceGlobal} ejercicio={preguntaActual.datos} colores={colores}
+              onRespuesta={(ok) => manejarRespuestaEjercicio(ok)} />
           )}
           {preguntaActual.tipo === 'relacionar' && (
-            <EjercicioRelacionarComp ejercicio={preguntaActual.datos} colores={colores}
-              onRespuesta={(ok) => avanzar(ok)} />
+            <EjercicioRelacionarComp key={indiceGlobal} ejercicio={preguntaActual.datos} colores={colores}
+              onRespuesta={(ok) => manejarRespuestaEjercicio(ok)} />
           )}
         </View>
       )}

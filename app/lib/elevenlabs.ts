@@ -1,6 +1,10 @@
 // app/lib/elevenlabs.ts
 // Genera audio con ElevenLabs y retorna un base64 para reproducir con expo-av.
-// Si ElevenLabs falla o no hay API key, usa expo-speech como fallback gratuito.
+// Si ElevenLabs falla o no hay API key, retorna null y quien llama a esta
+// función (leccion.tsx, conversacion.tsx, etc.) se encarga de reproducir el
+// audio de respaldo con expo-speech. Esta función YA NO reproduce audio por
+// su cuenta — antes lo hacía y por eso la pregunta se escuchaba duplicada
+// (se reproducía aquí Y también en el archivo que llamaba a esta función).
 
 import * as Speech from 'expo-speech';
 
@@ -29,7 +33,9 @@ export function detenerVoz() {
   Speech.stop();
 }
 
-// Hablar con expo-speech (gratuito, voz del sistema)
+// Hablar con expo-speech (gratuito, voz del sistema).
+// Se deja disponible para quien quiera usarla directamente, pero
+// generarVozBase64 YA NO la llama internamente (ver nota arriba).
 export function hablarNativo(texto: string, nombreAvatar: string) {
   const config = VOCES_NATIVAS[nombreAvatar] ?? VOCES_NATIVAS['Michelle'];
   Speech.stop();
@@ -40,14 +46,22 @@ export function hablarNativo(texto: string, nombreAvatar: string) {
   });
 }
 
-// Intentar ElevenLabs, con fallback automático a expo-speech
+// Devuelve la configuración de voz (pitch/rate) recomendada para un avatar,
+// por si quien llama a esta función quiere usarla al armar su propio
+// fallback con expo-speech (en vez de los valores fijos rate: 0.85).
+export function configVozNativa(nombreAvatar: string) {
+  return VOCES_NATIVAS[nombreAvatar] ?? VOCES_NATIVAS['Michelle'];
+}
+
+// Intentar ElevenLabs. Si no hay API key válida, o la petición falla, o hay
+// una excepción, retorna null SIN reproducir nada — quien llama a esta
+// función es responsable de reproducir el audio de respaldo.
 export async function generarVozBase64(
   texto: string,
   nombreAvatar: string
 ): Promise<string | null> {
-  // Si no hay API key válida, usar fallback directo
+  // Si no hay API key válida, usar fallback directo (sin hablar aquí)
   if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY.length < 10) {
-    hablarNativo(texto, nombreAvatar);
     return null;
   }
 
@@ -74,8 +88,7 @@ export async function generarVozBase64(
     );
 
     if (!response.ok) {
-      console.warn('ElevenLabs no disponible, usando voz del sistema.');
-      hablarNativo(texto, nombreAvatar);
+      console.warn('ElevenLabs no disponible, se usará voz del sistema.');
       return null;
     }
 
@@ -87,8 +100,7 @@ export async function generarVozBase64(
     }
     return btoa(binary);
   } catch (e) {
-    console.warn('ElevenLabs error, usando voz del sistema:', e);
-    hablarNativo(texto, nombreAvatar);
+    console.warn('ElevenLabs error, se usará voz del sistema:', e);
     return null;
   }
 }
