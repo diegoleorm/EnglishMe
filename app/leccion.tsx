@@ -4,7 +4,7 @@ import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-spe
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Easing, ScrollView, StyleSheet,
+  Animated, Dimensions, Easing, Image, Modal, ScrollView, StyleSheet,
   Text, TouchableOpacity, View,
 } from 'react-native';
 import { obtenerLeccionesDeTema } from './contenido/lecciones';
@@ -44,6 +44,36 @@ const FRASES_INCORRECTO_EJERCICIO = [
   "Not this time. See the correct answer above.",
 ];
 
+// Explicación corta de gramática / orden de palabras, una por nivel (0 a 5).
+// Se muestra antes de empezar la lección y también se puede volver a ver
+// en cualquier momento tocando el botón "?" durante el ejercicio.
+const EXPLICACION_GRAMATICAL: Record<number, { titulo: string; texto: string }> = {
+  0: {
+    titulo: 'Orden básico: Sujeto + Verbo + Complemento',
+    texto: "En inglés, el orden casi siempre es Sujeto + Verbo + Complemento (SVO), y casi nunca cambia como en español. Ejemplo: \"I like apples\" (Yo + gusto + manzanas).",
+  },
+  1: {
+    titulo: 'Presente simple y presente continuo',
+    texto: "En preguntas y negaciones se usa \"do/does\" antes del verbo: \"Do you like coffee?\". En presente continuo, el orden es Sujeto + am/is/are + verbo-ing: \"She is reading a book\".",
+  },
+  2: {
+    titulo: 'Pasado simple y pasado continuo',
+    texto: "En pasado simple, el verbo cambia de forma (irregular) o se le agrega \"-ed\": \"I visited my grandmother\". En pasado continuo: Sujeto + was/were + verbo-ing.",
+  },
+  3: {
+    titulo: 'Presente y pasado perfecto',
+    texto: "El presente perfecto usa have/has + participio pasado: \"I have seen that movie\". Conecta una acción del pasado con el presente, algo que no existe igual en español.",
+  },
+  4: {
+    titulo: 'Condicionales y voz pasiva',
+    texto: "Los condicionales combinan \"if\" + una condición + una consecuencia: \"If I study, I will pass\". La voz pasiva invierte el enfoque de la frase: \"The book was written by her\".",
+  },
+  5: {
+    titulo: 'Estructuras avanzadas',
+    texto: "En nivel avanzado el orden puede invertirse para dar énfasis: \"Never have I seen...\", o usarse estructuras como el subjuntivo: \"I wish I had known\".",
+  },
+};
+
 function fraseCorrecto() { return FRASES_CORRECTO[Math.floor(Math.random() * FRASES_CORRECTO.length)]; }
 function fraseIncorrecto(r: string) { return `${FRASES_INCORRECTO[Math.floor(Math.random() * FRASES_INCORRECTO.length)]}${r}.`; }
 function fraseIncorrectoEjercicio() { return FRASES_INCORRECTO_EJERCICIO[Math.floor(Math.random() * FRASES_INCORRECTO_EJERCICIO.length)]; }
@@ -66,56 +96,100 @@ interface PreguntaUnificada {
 }
 
 // ── Datos de avatar ───────────────────────────────────────────────────────────
-const DATOS_AVATAR: Record<string, { emoji: string; color: string; bg: string }> = {
-  Michelle: { emoji: '👩',    color: '#DB2777', bg: '#FCE7F3' },
-  Esteban:  { emoji: '👨',    color: '#1D4ED8', bg: '#DBEAFE' },
-  Luciana:  { emoji: '👩‍🏫', color: '#7E22CE', bg: '#F3E8FF' },
-  Charley:  { emoji: '👨‍💼', color: '#C2410C', bg: '#FFEDD5' },
+// 3 fotos por tutor (misma pose, distinta boca) que se ciclan al azar mientras
+// habla, para simular movimiento de boca sin necesidad de IA de video.
+// Por ahora `imagenMedia` e `imagenAbierta` apuntan a copias temporales de la
+// misma foto (placeholders) — al reemplazar esos archivos por las versiones
+// reales de boca media/abierta, la animación mejora de inmediato sin tocar código.
+const DATOS_AVATAR: Record<string, { imagenCerrada: any; imagenMedia: any; imagenAbierta: any; color: string; bg: string }> = {
+  Michelle: {
+    imagenCerrada: require('../assets/avatares/michelle.png'),
+    imagenMedia:   require('../assets/avatares/michelle_bocamedia.png'),
+    imagenAbierta: require('../assets/avatares/michelle_bocaabierta.png'),
+    color: '#DB2777', bg: '#FCE7F3',
+  },
+  Esteban: {
+    imagenCerrada: require('../assets/avatares/esteban.png'),
+    imagenMedia:   require('../assets/avatares/esteban_bocamedia.png'),
+    imagenAbierta: require('../assets/avatares/esteban_bocaabierta.png'),
+    color: '#1D4ED8', bg: '#DBEAFE',
+  },
+  Luciana: {
+    imagenCerrada: require('../assets/avatares/luciana.png'),
+    imagenMedia:   require('../assets/avatares/luciana_bocamedia.png'),
+    imagenAbierta: require('../assets/avatares/luciana_bocaabierta.png'),
+    color: '#7E22CE', bg: '#F3E8FF',
+  },
+  Charley: {
+    imagenCerrada: require('../assets/avatares/charley.png'),
+    imagenMedia:   require('../assets/avatares/charley_bocamedia.png'),
+    imagenAbierta: require('../assets/avatares/charley_bocaabierta.png'),
+    color: '#C2410C', bg: '#FFEDD5',
+  },
 };
+
+// Altura del avatar grande: ~32% del alto de pantalla, ocupando la parte
+// superior como una tarjeta grande (no más el círculo pequeño de antes).
+const ALTURA_AVATAR_GRANDE = Math.round(Dimensions.get('window').height * 0.32);
 
 function AvatarHablando({ nombre, hablando, escuchando, onPress }: {
   nombre: string; hablando: boolean; escuchando: boolean; onPress: () => void;
 }) {
-  const pulso    = useRef(new Animated.Value(1)).current;
-  const rotacion = useRef(new Animated.Value(0)).current;
-  const datos    = DATOS_AVATAR[nombre] ?? DATOS_AVATAR['Michelle'];
+  const pulso   = useRef(new Animated.Value(1)).current;
+  const glow    = useRef(new Animated.Value(0)).current;
+  const datos   = DATOS_AVATAR[nombre] ?? DATOS_AVATAR['Michelle'];
+  const [formaBoca, setFormaBoca] = useState(0); // 0 = cerrada, 1 = media, 2 = abierta
+  const imagenesBoca = [datos.imagenCerrada, datos.imagenMedia, datos.imagenAbierta];
 
+  // Respiración/pulso sutil de toda la imagen mientras habla, y ciclado al
+  // azar entre las 3 formas de boca (evitando repetir la misma dos veces
+  // seguidas, para que se vea más natural y menos robótico).
   useEffect(() => {
     if (hablando) {
       Animated.loop(Animated.sequence([
-        Animated.timing(pulso, { toValue: 1.08, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulso, { toValue: 0.96, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulso, { toValue: 1.015, duration: 450, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulso, { toValue: 1,     duration: 450, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])).start();
-    } else { pulso.stopAnimation(); Animated.timing(pulso, { toValue: 1, duration: 200, useNativeDriver: true }).start(); }
+      const intervalo = setInterval(() => {
+        setFormaBoca(actual => {
+          let siguiente = Math.floor(Math.random() * 3);
+          if (siguiente === actual) siguiente = (siguiente + 1) % 3;
+          return siguiente;
+        });
+      }, 170);
+      return () => { clearInterval(intervalo); setFormaBoca(0); };
+    } else {
+      pulso.stopAnimation();
+      Animated.timing(pulso, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }
   }, [hablando]);
 
+  // Resplandor del borde: pulsa siempre suavemente, con más fuerza cuando
+  // habla o escucha, para reemplazar los anillos que tenía el círculo chico.
   useEffect(() => {
-    if (escuchando) {
-      Animated.loop(Animated.sequence([
-        Animated.timing(rotacion, { toValue: 1,  duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(rotacion, { toValue: -1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(rotacion, { toValue: 0,  duration: 300, useNativeDriver: true }),
-      ])).start();
-    } else { rotacion.stopAnimation(); Animated.timing(rotacion, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }
-  }, [escuchando]);
+    const anim = Animated.loop(Animated.sequence([
+      Animated.timing(glow, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      Animated.timing(glow, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+    ]));
+    anim.start();
+    return () => anim.stop();
+  }, []);
 
-  const rotate = rotacion.interpolate({ inputRange: [-1, 1], outputRange: ['-4deg', '4deg'] });
+  const colorEstado = hablando ? datos.color : escuchando ? '#22C55E' : datos.color + '50';
+  const anchoBorde = glow.interpolate({ inputRange: [0, 1], outputRange: (hablando || escuchando) ? [2, 6] : [2, 3] });
 
   return (
-    <TouchableOpacity style={eAv.contenedor} onPress={onPress} activeOpacity={0.85}>
-      {hablando && (
-        <>
-          <Animated.View style={[eAv.anillo, { backgroundColor: datos.color + '20', transform: [{ scale: pulso }] }]} />
-          <Animated.View style={[eAv.anilloMedio, { backgroundColor: datos.color + '15', transform: [{ scale: pulso }] }]} />
-        </>
-      )}
-      {escuchando && <Animated.View style={[eAv.anillo, { backgroundColor: '#22C55E20', transform: [{ scale: pulso }] }]} />}
-      <Animated.View style={[
-        eAv.circulo,
-        { backgroundColor: datos.bg, borderColor: hablando ? datos.color : escuchando ? '#22C55E' : datos.color + '40' },
-        { transform: [{ scale: hablando ? pulso : 1 }, { rotate: escuchando ? rotate : '0deg' }] },
-      ]}>
-        <Text style={eAv.emoji}>{datos.emoji}</Text>
+    <TouchableOpacity style={eAv.contenedor} onPress={onPress} activeOpacity={0.9}>
+      {/* Capa externa: solo maneja el "pulso" (transform/scale), animación
+          nativa. Capa interna: solo maneja el resplandor del borde
+          (borderWidth/borderColor), animación por JS. Deben ir en Animated.View
+          separados porque React Native no permite mezclar animación nativa y
+          por JS sobre el mismo nodo — mezclarlas causaba el error
+          "Attempting to run JS driven animation on animated node...". */}
+      <Animated.View style={{ transform: [{ scale: hablando ? pulso : 1 }] }}>
+        <Animated.View style={[eAv.tarjeta, { borderColor: colorEstado, borderWidth: anchoBorde }]}>
+          <Image source={hablando ? imagenesBoca[formaBoca] : datos.imagenCerrada} style={eAv.imagen} resizeMode="cover" />
+        </Animated.View>
       </Animated.View>
       <View style={[eAv.badge, { backgroundColor: hablando ? datos.color : escuchando ? '#22C55E' : '#64748B' }]}>
         <Text style={eAv.badgeTexto}>
@@ -127,13 +201,11 @@ function AvatarHablando({ nombre, hablando, escuchando, onPress }: {
 }
 
 const eAv = StyleSheet.create({
-  contenedor:  { height: 170, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  anillo:      { position: 'absolute', width: 160, height: 160, borderRadius: 80 },
-  anilloMedio: { position: 'absolute', width: 130, height: 130, borderRadius: 65 },
-  circulo:     { width: 86, height: 86, borderRadius: 43, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
-  emoji:       { fontSize: 44 },
-  badge:       { position: 'absolute', bottom: 4, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-  badgeTexto:  { color: '#fff', fontSize: 11, fontWeight: '700' },
+  contenedor:  { width: '100%', marginBottom: 12 },
+  tarjeta:     { width: '100%', height: ALTURA_AVATAR_GRANDE, borderRadius: 28, overflow: 'hidden', backgroundColor: '#0B1220' },
+  imagen:      { width: '100%', height: '100%' },
+  badge:       { position: 'absolute', bottom: 12, alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  badgeTexto:  { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
 
 function BotonMicrofono({ onIniciar, onTerminar, escuchando, disabled, colores }: {
@@ -467,6 +539,8 @@ export default function LeccionScreen() {
   const [textoEscuchado, setTextoEscuchado] = useState('');
   const [procesando, setProcesando]     = useState(false);
   const [esperandoEjercicio, setEsperandoEjercicio] = useState(false);
+  const [mostrarIntro, setMostrarIntro] = useState(true);
+  const [mostrarAyuda, setMostrarAyuda] = useState(false);
 
   const alTerminarHablar = useRef<(() => void) | null>(null);
   const soundRef         = useRef<Audio.Sound | null>(null);
@@ -548,7 +622,7 @@ export default function LeccionScreen() {
   };
 
   useEffect(() => {
-    if (!preguntaActual || terminado || terminadoGrupo) return;
+    if (!preguntaActual || terminado || terminadoGrupo || mostrarIntro) return;
     if (hablandoRef.current) return;
     hablandoRef.current = true;
     yaRespondio.current = false;
@@ -570,7 +644,7 @@ export default function LeccionScreen() {
       }
     }, 400);
     return () => { clearTimeout(timer); hablandoRef.current = false; };
-  }, [indiceGlobal, terminadoGrupo]);
+  }, [indiceGlobal, terminadoGrupo, mostrarIntro]);
 
   useEffect(() => {
     return () => {
@@ -579,6 +653,29 @@ export default function LeccionScreen() {
       soundRef.current?.stopAsync().then(() => soundRef.current?.unloadAsync());
     };
   }, []);
+
+  // El avatar (el mismo elegido como tutor) lee en voz alta la explicación
+  // gramatical apenas se muestra la tarjeta de introducción.
+  useEffect(() => {
+    if (mostrarIntro) {
+      const expl = EXPLICACION_GRAMATICAL[nivelIdx] ?? EXPLICACION_GRAMATICAL[0];
+      hablandoRef.current = false; alTerminarHablar.current = null;
+      hablarAvatar(expl.texto);
+    }
+  }, [mostrarIntro]);
+
+  // Lo mismo cuando se abre el modal de ayuda "❓" durante el ejercicio.
+  // Al cerrarlo, se detiene el audio de la explicación (no interfiere con
+  // el progreso de la pregunta que quedó pendiente detrás del modal).
+  useEffect(() => {
+    if (mostrarAyuda) {
+      const expl = EXPLICACION_GRAMATICAL[nivelIdx] ?? EXPLICACION_GRAMATICAL[0];
+      hablandoRef.current = false; alTerminarHablar.current = null;
+      hablarAvatar(expl.texto);
+    } else {
+      detenerTodoAudio();
+    }
+  }, [mostrarAyuda]);
 
   // Detiene cualquier audio en curso (voz nativa o mp3 de ElevenLabs) e
   // invalida el token de cualquier voz anterior para que sus callbacks
@@ -669,8 +766,14 @@ export default function LeccionScreen() {
   };
 
   const repetirPregunta = () => {
-    if (!esNormal || escuchando || procesando || seleccion !== null) return;
+    if (escuchando || procesando || !preguntaActual) return;
     hablandoRef.current = false; alTerminarHablar.current = null;
+    if (!esNormal) {
+      // Ordenar / Verdadero-Falso / Relacionar: repetir la instrucción del ejercicio
+      hablarAvatar(instruccionAvatar());
+      return;
+    }
+    if (seleccion !== null) return;
     const tieneBlanco = preguntaActual.datos.ingles.includes('___');
     if (tieneBlanco) {
       const partes = preguntaActual.datos.ingles.split('___');
@@ -730,7 +833,7 @@ export default function LeccionScreen() {
   // (2) pasó un tiempo mínimo de lectura (más largo si hay que leer la
   // respuesta correcta). Así nunca se corta antes de tiempo ni se solapa
   // con la siguiente narración.
-  const hablarFeedbackYAvanzar = (esCorrecto: boolean, textoFeedback: string) => {
+  const hablarFeedbackYAvanzar = (esCorrecto: boolean, textoFeedback: string, tiempoExtraMs: number = 0) => {
     if (feedbackEnCursoRef.current) return; // ya se está procesando un feedback, ignorar el duplicado
     feedbackEnCursoRef.current = true;
     tokenAudio.current++;
@@ -743,7 +846,10 @@ export default function LeccionScreen() {
     }
     setAvatarHablando(true);
 
-    const tiempoMinimoMs = esCorrecto ? 1800 : 3200;
+    // tiempoExtraMs se usa cuando el feedback incluye una frase larga que
+    // el usuario necesita tiempo de leer en pantalla (ej: ejercicios de
+    // ordenar, donde se lee la frase completa antes de confirmar).
+    const tiempoMinimoMs = (esCorrecto ? 1800 : 3200) + tiempoExtraMs;
 
     let vozLista = false;
     let tiempoListo = false;
@@ -785,9 +891,14 @@ export default function LeccionScreen() {
 
   // Usado por los ejercicios de ordenar / verdadero-falso / relacionar,
   // que antes avanzaban en silencio sin que Milo dijera nada.
-  const manejarRespuestaEjercicio = (esCorrecto: boolean) => {
-    const textoFeedback = esCorrecto ? fraseCorrecto() : fraseIncorrectoEjercicio();
-    hablarFeedbackYAvanzar(esCorrecto, textoFeedback);
+  // `fraseParaLeer` (solo en ordenar) hace que el avatar lea la frase
+  // completa en voz alta ANTES del feedback, y le da tiempo extra en
+  // pantalla para poder leerla — tanto si acertó como si no.
+  const manejarRespuestaEjercicio = (esCorrecto: boolean, fraseParaLeer?: string) => {
+    const feedbackBase = esCorrecto ? fraseCorrecto() : fraseIncorrectoEjercicio();
+    const textoFeedback = fraseParaLeer ? `${fraseParaLeer}. ${feedbackBase}` : feedbackBase;
+    const tiempoExtraMs = fraseParaLeer ? 1500 : 0;
+    hablarFeedbackYAvanzar(esCorrecto, textoFeedback, tiempoExtraMs);
   };
 
   const continuarSiguienteGrupo = () => {
@@ -811,6 +922,33 @@ export default function LeccionScreen() {
       default: return '💬';
     }
   };
+
+  // ── Pantalla de introducción gramatical ───────────────────────────────────
+  // Se muestra una vez al entrar a la lección. El mismo contenido se puede
+  // volver a consultar tocando el botón "?" durante el ejercicio, sin perder
+  // el progreso (ver Modal de ayuda más abajo).
+  if (mostrarIntro) {
+    const expl = EXPLICACION_GRAMATICAL[nivelIdx] ?? EXPLICACION_GRAMATICAL[0];
+    const repetirExplicacion = () => {
+      hablandoRef.current = false; alTerminarHablar.current = null;
+      hablarAvatar(expl.texto);
+    };
+    return (
+      <View style={styles.resultContainer}>
+        <View style={styles.resultCard}>
+          <AvatarHablando nombre={nombreAvatar} hablando={avatarHablando} escuchando={false} onPress={repetirExplicacion} />
+          <Text style={styles.resultTitulo}>{expl.titulo}</Text>
+          <Text style={[styles.resultMensaje, { marginBottom: 24 }]}>{expl.texto}</Text>
+          <TouchableOpacity style={styles.btnRepetir} onPress={() => { detenerTodoAudio(); setMostrarIntro(false); }}>
+            <Text style={styles.btnRepetirTexto}>✅ Entendido, ¡empecemos!</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 11, color: colores.textoTerciario, textAlign: 'center', marginTop: 4 }}>
+            Puedes volver a ver esta explicación tocando el botón "❓" durante la lección.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   // ── Pantalla entre grupos ─────────────────────────────────────────────────
   if (terminadoGrupo && !terminado) {
@@ -881,6 +1019,9 @@ export default function LeccionScreen() {
         </TouchableOpacity>
         <View style={styles.progressBarBg}><View style={[styles.progressBarFill, { width: `${progresoGrupo}%` }]} /></View>
         <Text style={styles.progressLabel}>{pasoEnGrupo + 1}/{preguntasEnGrupoActual}</Text>
+        <TouchableOpacity onPress={() => setMostrarAyuda(true)} style={styles.ayudaBtn}>
+          <Text style={styles.ayudaBtnTexto}>❓</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.grupoInfo}>
@@ -934,7 +1075,7 @@ export default function LeccionScreen() {
         <View style={styles.burbujaWrap}>
           {preguntaActual.tipo === 'ordenar' && (
             <EjercicioOrdenarComp key={indiceGlobal} ejercicio={preguntaActual.datos} colores={colores}
-              onRespuesta={(ok) => manejarRespuestaEjercicio(ok)} />
+              onRespuesta={(ok) => manejarRespuestaEjercicio(ok, preguntaActual.datos.frase_correcta)} />
           )}
           {preguntaActual.tipo === 'verdadero_falso' && (
             <EjercicioVFComp key={indiceGlobal} ejercicio={preguntaActual.datos} colores={colores}
@@ -946,6 +1087,23 @@ export default function LeccionScreen() {
           )}
         </View>
       )}
+
+      {/* Modal de ayuda: se abre encima de todo sin cambiar de pantalla,
+          así que al cerrarla el usuario vuelve exactamente al mismo punto
+          (misma pregunta, mismas palabras ya seleccionadas, etc.) */}
+      <Modal visible={mostrarAyuda} transparent animationType="fade" onRequestClose={() => setMostrarAyuda(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <AvatarHablando nombre={nombreAvatar} hablando={avatarHablando} escuchando={false}
+              onPress={() => { hablandoRef.current = false; alTerminarHablar.current = null; hablarAvatar((EXPLICACION_GRAMATICAL[nivelIdx] ?? EXPLICACION_GRAMATICAL[0]).texto); }} />
+            <Text style={styles.resultTitulo}>{(EXPLICACION_GRAMATICAL[nivelIdx] ?? EXPLICACION_GRAMATICAL[0]).titulo}</Text>
+            <Text style={[styles.resultMensaje, { marginBottom: 20 }]}>{(EXPLICACION_GRAMATICAL[nivelIdx] ?? EXPLICACION_GRAMATICAL[0]).texto}</Text>
+            <TouchableOpacity style={styles.btnRepetir} onPress={() => setMostrarAyuda(false)}>
+              <Text style={styles.btnRepetirTexto}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -960,6 +1118,10 @@ function crearEstilos(colores: Tema) {
     progressBarBg:       { flex: 1, height: 8, backgroundColor: colores.fondoTarjeta, borderRadius: 4 },
     progressBarFill:     { height: 8, backgroundColor: colores.primario, borderRadius: 4 },
     progressLabel:       { color: colores.primario, fontSize: 13, fontWeight: '700', minWidth: 32, textAlign: 'right' },
+    ayudaBtn:            { width: 30, height: 30, borderRadius: 15, backgroundColor: colores.fondoTarjeta, borderWidth: 1, borderColor: colores.borde, alignItems: 'center', justifyContent: 'center' },
+    ayudaBtnTexto:       { fontSize: 14 },
+    modalOverlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+    modalCard:           { backgroundColor: colores.fondoTarjeta, borderRadius: 24, padding: 24, width: '100%', maxWidth: 420, alignItems: 'center' },
     grupoInfo:           { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     temaTitulo:          { color: colores.textoSecundario, fontSize: 13, fontWeight: '600' },
     grupoPill:           { backgroundColor: colores.fondoTarjeta, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, borderWidth: 1, borderColor: colores.borde },

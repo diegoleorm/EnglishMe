@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useProgreso } from './theme/ProgresoContext';
 import { useTema } from './theme/ThemeContext';
 import type { Tema } from './theme/colors';
@@ -9,6 +9,7 @@ const avatares = [
     id: 1,
     nombre: 'Michelle',
     descripcion: 'Amigable y paciente',
+    imagen: require('../assets/avatares/michelle.png'),
     emoji: '👩',
     edad: '28 años',
     estilo: 'Casual',
@@ -20,6 +21,7 @@ const avatares = [
     id: 2,
     nombre: 'Esteban',
     descripcion: 'Moderno y dinámico',
+    imagen: require('../assets/avatares/esteban.png'),
     emoji: '👨',
     edad: '25 años',
     estilo: 'Casual',
@@ -31,6 +33,7 @@ const avatares = [
     id: 3,
     nombre: 'Luciana',
     descripcion: 'Formal y experta',
+    imagen: require('../assets/avatares/luciana.png'),
     emoji: '👩‍🏫',
     edad: '33 años',
     estilo: 'Formal',
@@ -42,6 +45,7 @@ const avatares = [
     id: 4,
     nombre: 'Charley',
     descripcion: 'Tutor de negocios',
+    imagen: require('../assets/avatares/charley.png'),
     emoji: '👨‍💼',
     edad: '40 años',
     estilo: 'Formal',
@@ -82,7 +86,7 @@ export default function AvatarScreen() {
             onPress={() => seleccionarAvatar(avatar.nombre, avatar.emoji)}
           >
             <View style={[styles.avatarCircle, { backgroundColor: avatar.bgColor }]}>
-              <Text style={styles.avatarEmoji}>{avatar.emoji}</Text>
+              <Image source={avatar.imagen} style={styles.avatarImagen} resizeMode="cover" />
             </View>
             <Text style={[styles.nombre, { color: avatar.color }]}>{avatar.nombre}</Text>
             <Text style={styles.descripcion}>{avatar.descripcion}</Text>
@@ -155,15 +159,17 @@ function crearEstilos(colores: Tema) {
       borderColor: colores.borde,
     },
     avatarCircle: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
+      width: 112,
+      height: 112,
+      borderRadius: 56,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 10,
+      marginBottom: 12,
+      overflow: 'hidden',
     },
-    avatarEmoji: {
-      fontSize: 32,
+    avatarImagen: {
+      width: 112,
+      height: 112,
     },
     nombre: {
       fontSize: 15,
