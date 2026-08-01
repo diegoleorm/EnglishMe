@@ -6,7 +6,7 @@ import type { Tema } from '../theme/colors';
 
 const temasPorNivel = [
   {
-    nivel: 'Nivel 0',
+    nivel: 'Isla Brújula',
     nivelIndex: 0,
     color: '#16A34A',
     bgColor: '#DCFCE7',
@@ -19,7 +19,7 @@ const temasPorNivel = [
     ],
   },
   {
-    nivel: 'Nivel A1',
+    nivel: 'Isla del Faro Eterno',
     nivelIndex: 1,
     color: '#2563EB',
     bgColor: '#DBEAFE',
@@ -33,7 +33,7 @@ const temasPorNivel = [
     ],
   },
   {
-    nivel: 'Nivel A2',
+    nivel: 'Archipiélago del Horizonte',
     nivelIndex: 2,
     color: '#9333EA',
     bgColor: '#F3E8FF',
@@ -48,7 +48,7 @@ const temasPorNivel = [
     ],
   },
   {
-    nivel: 'Nivel B1',
+    nivel: 'Isla Marea Alta',
     nivelIndex: 3,
     color: '#D97706',
     bgColor: '#FEF3C7',
@@ -65,7 +65,7 @@ const temasPorNivel = [
     ],
   },
   {
-    nivel: 'Nivel B2',
+    nivel: 'Cabo de los Vientos',
     nivelIndex: 4,
     color: '#DC2626',
     bgColor: '#FEE2E2',
@@ -81,7 +81,7 @@ const temasPorNivel = [
     ],
   },
   {
-    nivel: 'Nivel C1',
+    nivel: 'Puerto del Gran Timón',
     nivelIndex: 5,
     color: '#CA8A04',
     bgColor: '#FEF9C3',
@@ -97,8 +97,6 @@ const temasPorNivel = [
   },
 ];
 
-// ── Función para navegar al modo conversación ────────────────────────────────
-
 export default function TemasScreen() {
   const router = useRouter();
   const { nombre, emoji } = useLocalSearchParams();
@@ -109,21 +107,16 @@ export default function TemasScreen() {
   const tutorNombre = nombre as string || 'Tu tutor';
   const tutorEmoji = emoji as string || '🎓';
 
-  // El nivel actual del usuario (por defecto 0 si no ha elegido)
   const nivelUsuario = nivelId ?? 0;
-
-  // El nivel que se está viendo ahora (puede navegar entre niveles)
   const [nivelViendo, setNivelViendo] = useState(nivelUsuario);
 
   const grupoActual = temasPorNivel[nivelViendo];
   const completadosEnGrupo = grupoActual.temas.filter(t => estaTemaCompletado(t.id)).length;
   const nivelCompletado = completadosEnGrupo === grupoActual.temas.length;
 
-  // Un nivel está desbloqueado si el usuario ya llegó a ese nivel o si completó el anterior
   const estaDesbloqueado = (idx: number): boolean => {
     if (idx === 0) return true;
     if (idx <= nivelUsuario) return true;
-    // También se desbloquea si todos los temas del nivel anterior están completados
     const grupoAnterior = temasPorNivel[idx - 1];
     const completadosAnterior = grupoAnterior.temas.filter(t => estaTemaCompletado(t.id)).length;
     return completadosAnterior === grupoAnterior.temas.length;
@@ -135,7 +128,6 @@ export default function TemasScreen() {
 
   return (
     <View style={styles.wrapper}>
-      {/* Cabecera fija con tutor y navegación de nivel */}
       <View style={styles.header}>
         <View style={styles.tutorChip}>
           <Text style={styles.tutorEmoji}>{tutorEmoji}</Text>
@@ -145,7 +137,6 @@ export default function TemasScreen() {
           </View>
         </View>
 
-        {/* Navegación de nivel */}
         <View style={styles.navNivel}>
           <TouchableOpacity
             style={[styles.navBtn, !puedeIrAnterior && styles.navBtnDisabled]}
@@ -171,7 +162,6 @@ export default function TemasScreen() {
               if (siguienteDesbloqueado) {
                 setNivelViendo(nivelViendo + 1);
               }
-              // Si está bloqueado no hace nada (el botón se ve deshabilitado)
             }}
             disabled={!puedeIrSiguiente}
           >
@@ -179,26 +169,23 @@ export default function TemasScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Mensaje si el siguiente nivel está bloqueado */}
         {puedeIrSiguiente && !siguienteDesbloqueado && (
           <View style={styles.bloqueadoAviso}>
             <Text style={styles.bloqueadoAvisoTexto}>
-              🔒 Completa todos los temas de este nivel para desbloquear el siguiente
+              🔒 Completa todos los temas de esta isla para desbloquear la siguiente
             </Text>
           </View>
         )}
 
-        {/* Mensaje de nivel completado */}
         {nivelCompletado && puedeIrSiguiente && siguienteDesbloqueado && (
           <View style={styles.completadoAviso}>
             <Text style={styles.completadoAvisoTexto}>
-              🎉 ¡Nivel completado! Ya puedes avanzar al siguiente
+              🎉 ¡Isla completada! Ya puedes zarpar hacia la siguiente
             </Text>
           </View>
         )}
       </View>
 
-      {/* Lista de temas del nivel actual */}
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>¿Qué quieres aprender?</Text>
         <Text style={styles.subtitle}>Elige un tema para comenzar</Text>
@@ -247,7 +234,6 @@ export default function TemasScreen() {
           );
         })}
 
-        {/* Tema especial: Modo Conversación */}
         <TouchableOpacity
           style={[styles.cardConversacion, { borderColor: grupoActual.color }]}
           activeOpacity={0.85}
@@ -286,7 +272,6 @@ export default function TemasScreen() {
   );
 }
 
-// Necesitamos useState, importarlo arriba
 import { useState } from 'react';
 
 function crearEstilos(colores: Tema) {
