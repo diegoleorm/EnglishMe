@@ -1,7 +1,12 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { Tema, temaClaro, temaOscuro } from './colors';
+import { createContext, ReactNode, useContext } from 'react';
+import { Tema, temaPirata } from './colors';
 
+// GoMilo ya no tiene modo claro/oscuro: una sola identidad visual pirata
+// consistente en toda la app (como Royal Kingdom). Se conserva la misma
+// forma del contexto (modoTema, cambiarTema, alternarTema, cargando) para
+// no romper ninguna pantalla que ya los use — por ejemplo, si existe un
+// botón de "cambiar tema" en configuracion.tsx, seguirá funcionando sin
+// errores, simplemente ya no cambia nada visible.
 type TipoTema = 'claro' | 'oscuro';
 
 interface ThemeContextType {
@@ -15,42 +20,16 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [modoTema, setModoTema] = useState<TipoTema>('oscuro');
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    cargarTemaGuardado();
-  }, []);
-
-  const cargarTemaGuardado = async () => {
-    try {
-      const temaGuardado = await AsyncStorage.getItem('modo_tema');
-      if (temaGuardado === 'claro' || temaGuardado === 'oscuro') {
-        setModoTema(temaGuardado);
-      }
-    } catch (e) {
-      console.log('Error cargando tema:', e);
-    }
-    setCargando(false);
+  const value: ThemeContextType = {
+    modoTema: 'oscuro',
+    colores: temaPirata,
+    cambiarTema: () => {},
+    alternarTema: () => {},
+    cargando: false,
   };
-
-  const cambiarTema = async (modo: TipoTema) => {
-    setModoTema(modo);
-    try {
-      await AsyncStorage.setItem('modo_tema', modo);
-    } catch (e) {
-      console.log('Error guardando tema:', e);
-    }
-  };
-
-  const alternarTema = () => {
-    cambiarTema(modoTema === 'oscuro' ? 'claro' : 'oscuro');
-  };
-
-  const colores = modoTema === 'oscuro' ? temaOscuro : temaClaro;
 
   return (
-    <ThemeContext.Provider value={{ modoTema, colores, cambiarTema, alternarTema, cargando }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

@@ -1,51 +1,45 @@
-export const temaOscuro = {
-  fondo: '#0F172A',
-  fondoSecundario: '#1E293B',
-  fondoTarjeta: '#1E293B',
-  fondoInput: '#1E293B',
+// GoMilo — Identidad visual única (sin modo claro/oscuro), estilo pirata
+// vivo inspirado en juegos como Royal Kingdom: azul rey, borgoña y oro
+// brillante, con pares de degradado para dar profundidad en botones/tarjetas.
+export const temaPirata = {
+  // Fondos
+  fondo: '#153E90',            // azul rey (fondo general de pantallas)
+  fondoSecundario: '#0D2B6B',  // azul rey más profundo (headers, secciones)
+  fondoTarjeta: '#9B2242',     // borgoña (tarjetas, burbujas, botones secundarios)
+  fondoInput: '#6B1830',       // borgoña oscuro (campos de texto)
 
-  textoPrimario: '#FFFFFF',
-  textoSecundario: '#94A3B8',
-  textoTerciario: '#64748B',
+  // Textos
+  textoPrimario: '#FFFFFF',    // blanco (texto principal, máximo contraste)
+  textoSecundario: '#FFD700',  // oro brillante (texto secundario/acento)
+  textoTerciario: '#F4C430',   // oro cálido (texto terciario/detalles)
 
-  borde: '#334155',
-  bordeSutil: '#1E293B',
+  // Bordes — el oro grueso es la firma visual de la app
+  borde: '#FFD700',            // oro brillante
+  bordeSutil: '#B8860B',       // bronce (bordes discretos)
 
-  primario: '#3B6FE8',
-  primarioClaro: '#60A5FA',
-
-  exito: '#22C55E',
-  exitoFondo: '#14532D',
-  error: '#EF4444',
-  errorFondo: '#4C0519',
-  advertencia: '#EA580C',
-};
-
-export const temaClaro = {
-  fondo: '#FFF8EC',
-  fondoSecundario: '#FFFFFF',
-  fondoTarjeta: '#FFFFFF',
-  fondoInput: '#FFF3DD',
-
-  textoPrimario: '#3D2914',
-  textoSecundario: '#8B6F47',
-  textoTerciario: '#B89B6F',
-
-  borde: '#E8C77A',
-  bordeSutil: '#F0DCB4',
-
+  // Color principal — azul rey vivo (botones, barras de progreso)
   primario: '#2563EB',
   primarioClaro: '#60A5FA',
 
-  dorado: '#D4A12C',
-  doradoClaro: '#F4D789',
-  doradoFondo: '#FEF6E0',
-
+  // Feedback
   exito: '#16A34A',
-  exitoFondo: '#DCFCE7',
+  exitoFondo: '#052E16',
   error: '#DC2626',
-  errorFondo: '#FEE2E2',
-  advertencia: '#EA580C',
+  errorFondo: '#450A0A',
+  advertencia: '#F59E0B',
+
+  // Pares de degradado (para expo-linear-gradient) — mismo tono, más claro
+  // arriba y más oscuro abajo, simulando luz/volumen en vez de color plano.
+  gradientePrimario: ['#3B82F6', '#1230AE'] as [string, string],
+  gradienteTarjeta: ['#C0335A', '#7A1530'] as [string, string],
+  gradienteExito: ['#22C55E', '#0F5132'] as [string, string],
+  gradienteDorado: ['#FFE066', '#D4A017'] as [string, string],
 };
 
-export type Tema = typeof temaOscuro;
+export type Tema = typeof temaPirata;
+
+// Se conservan estos nombres por compatibilidad con código existente que
+// aún pueda importarlos directamente — ambos apuntan a la misma paleta
+// pirata, ya que GoMilo no tiene modo claro/oscuro.
+export const temaOscuro = temaPirata;
+export const temaClaro = temaPirata;
